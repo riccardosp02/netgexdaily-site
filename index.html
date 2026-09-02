@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>netgexdaily — Net gamma exposure su SPX e NDX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F4F0;
+    --bg-alt:#EAEBE4;
+    --ink:#15181A;
+    --ink-soft:#565C57;
+    --line:#D6D8CF;
+    --teal:#0F6E56;
+    --teal-soft:#DCEEE7;
+    --rust:#B3441F;
+    --rust-soft:#F5E1D6;
+    --serif:'Newsreader',Georgia,serif;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans); line-height:1.6; font-size:16px;
+  }
+  a{color:inherit;}
+  .wrap{max-width:920px; margin:0 auto; padding:0 28px;}
+
+  /* Nav */
+  header.site{
+    border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:10;
+  }
+  .navrow{
+    max-width:920px; margin:0 auto; padding:18px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{
+    font-family:var(--mono); font-size:14px; font-weight:500; letter-spacing:0.02em;
+    text-decoration:none; display:flex; align-items:center; gap:8px;
+  }
+  .brand .dot{width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block;}
+  nav.links{display:flex; gap:26px; font-size:14px;}
+  nav.links a{text-decoration:none; color:var(--ink-soft); border-bottom:1px solid transparent; padding-bottom:2px;}
+  nav.links a:hover{color:var(--ink); border-bottom-color:var(--ink);}
+
+  /* Hero */
+  .hero{padding:76px 0 40px;}
+  .hero .kicker{
+    font-family:var(--mono); font-size:13px; color:var(--ink-soft);
+    display:flex; align-items:center; gap:10px; margin-bottom:22px;
+  }
+  .hero .kicker .rule{flex:1; height:1px; background:var(--line);}
+  h1{
+    font-family:var(--serif); font-weight:500; font-size:44px; line-height:1.15;
+    margin:0 0 22px; max-width:15ch; letter-spacing:-0.01em;
+  }
+  .hero p.lead{
+    font-size:18px; color:var(--ink-soft); max-width:56ch; margin:0 0 34px;
+  }
+  .hero .ctas{display:flex; gap:14px; flex-wrap:wrap;}
+  .btn{
+    font-family:var(--sans); font-size:14px; font-weight:500; text-decoration:none;
+    padding:11px 20px; border:1px solid var(--ink); color:var(--ink);
+    display:inline-block; transition:background .15s, color .15s;
+  }
+  .btn.primary{background:var(--ink); color:var(--bg);}
+  .btn.primary:hover{background:var(--teal); border-color:var(--teal);}
+  .btn:not(.primary):hover{background:var(--ink); color:var(--bg);}
+
+  /* Zero-line motif */
+  .motif{margin:52px 0 8px;}
+  .motif svg{display:block; width:100%; height:auto;}
+
+  /* Section generic */
+  section{padding:56px 0; border-top:1px solid var(--line);}
+  section .label{
+    font-family:var(--mono); font-size:12px; color:var(--ink-soft);
+    text-transform:none; margin-bottom:14px;
+  }
+  h2{font-family:var(--serif); font-weight:500; font-size:28px; margin:0 0 18px; letter-spacing:-0.01em;}
+  section p{color:var(--ink-soft); max-width:62ch; font-size:15.5px;}
+
+  /* Project tiles */
+  .tiles{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); margin-top:28px;}
+  .tile{background:var(--bg); padding:26px 24px; text-decoration:none; color:var(--ink); display:block;}
+  .tile:hover{background:var(--bg-alt);}
+  .tile .idx{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-bottom:14px; display:block;}
+  .tile h3{font-family:var(--serif); font-size:22px; font-weight:500; margin:0 0 8px;}
+  .tile p{margin:0; font-size:14px; color:var(--ink-soft);}
+  .tile .go{font-family:var(--mono); font-size:12px; margin-top:16px; display:inline-block; color:var(--teal);}
+
+  /* pipeline teaser */
+  .steps{display:flex; flex-direction:column; margin-top:24px; border-top:1px solid var(--line);}
+  .step{display:flex; gap:20px; padding:16px 0; border-bottom:1px solid var(--line); align-items:baseline;}
+  .step .n{font-family:var(--mono); font-size:12px; color:var(--ink-soft); width:20px; flex-shrink:0;}
+  .step .t{font-size:15px;}
+  .step .t b{font-weight:500;}
+
+  /* stack badges */
+  .stack{display:flex; flex-wrap:wrap; gap:9px; margin-top:22px;}
+  .badge{
+    font-family:var(--mono); font-size:12.5px; padding:6px 12px;
+    border:1px solid var(--line); color:var(--ink-soft); background:var(--bg-alt);
+  }
+
+  /* footer */
+  footer{border-top:1px solid var(--line); padding:44px 0 60px;}
+  footer .cols{display:grid; grid-template-columns:1.4fr 1fr; gap:40px;}
+  footer h4{font-family:var(--sans); font-size:13px; font-weight:600; margin:0 0 10px;}
+  footer p{color:var(--ink-soft); font-size:14px; max-width:48ch; margin:0 0 10px;}
+  footer .social{display:flex; gap:16px; font-size:14px; margin-top:6px;}
+  footer .social a{text-decoration:none; border-bottom:1px solid var(--line);}
+  footer .social a:hover{border-bottom-color:var(--ink);}
+  .disclaimer{
+    margin-top:30px; padding-top:20px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);
+  }
+
+  @media (max-width:640px){
+    h1{font-size:32px;}
+    .tiles{grid-template-columns:1fr;}
+    footer .cols{grid-template-columns:1fr;}
+    nav.links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="navrow">
+    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <nav class="links">
+      <a href="dashboard-spx.html">Dashboard SPX</a>
+      <a href="dashboard-ndx.html">Dashboard NDX</a>
+      <a href="pipeline.html">Come funziona</a>
+      <a href="changelog.html">Note giornaliere</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="border-top:none; padding-bottom:0;">
+    <div class="kicker">progetto personale <span class="rule"></span> dati di mercato SPX / NDX</div>
+    <h1>Il net gamma exposure del mercato, letto un giorno alla volta.</h1>
+    <p class="lead">Raccolgo, calcolo e pubblico ogni giorno il net GEX di SPX e NDX a partire dalle catene di opzioni, poi lo visualizzo in dashboard interattive per leggere dove il mercato tende ad accelerare o a stabilizzarsi.</p>
+    <div class="ctas">
+      <a class="btn primary" href="dashboard-spx.html">Apri la dashboard SPX</a>
+      <a class="btn" href="pipeline.html">Come funziona la pipeline</a>
+    </div>
+
+    <div class="motif">
+      <svg viewBox="0 0 920 140" preserveAspectRatio="none">
+        <line x1="0" y1="70" x2="920" y2="70" stroke="var(--line)" stroke-width="1"/>
+        <path d="M0,70 C40,40 90,20 140,35 C190,50 220,90 270,100 C320,110 360,60 410,45 C460,30 500,55 550,70 C600,85 640,110 690,105 C740,100 780,55 830,40 C860,30 890,45 920,55 L920,70 L0,70 Z" fill="var(--teal)" opacity="0.14"/>
+        <path d="M0,70 C40,40 90,20 140,35 C190,50 220,90 270,100 C320,110 360,60 410,45 C460,30 500,55 550,70 C600,85 640,110 690,105 C740,100 780,55 830,40 C860,30 890,45 920,55" fill="none" stroke="var(--teal)" stroke-width="1.5"/>
+        <path d="M0,70 C40,100 90,120 140,105 C190,90 220,50 270,60 C320,70 360,120 410,110 C460,100 500,80 550,70 C600,60 640,30 690,50 C740,70 780,100 830,95 C860,90 890,80 920,85 L920,70 L0,70 Z" fill="var(--rust)" opacity="0.10"/>
+        <path d="M0,70 C40,100 90,120 140,105 C190,90 220,50 270,60 C320,70 360,120 410,110 C460,100 500,80 550,70 C600,60 640,30 690,50 C740,70 780,100 830,95 C860,90 890,80 920,85" fill="none" stroke="var(--rust)" stroke-width="1.5"/>
+      </svg>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">dashboard</div>
+    <h2>Due indici, stessa metodologia</h2>
+    <p>Ogni dashboard permette di scegliere un giorno da calendario e mostra quattro grafici collegati: livello superiore, CVD, delta CVD e livello inferiore.</p>
+    <div class="tiles">
+      <a class="tile" href="dashboard-spx.html">
+        <span class="idx">SPX</span>
+        <h3>S&amp;P 500 Index</h3>
+        <p>Serie giornaliera completa, dal primo giorno di raccolta a oggi.</p>
+        <span class="go">apri dashboard →</span>
+      </a>
+      <a class="tile" href="dashboard-ndx.html">
+        <span class="idx">NDX</span>
+        <h3>Nasdaq 100 Index</h3>
+        <p>Stessa struttura dati e stessi grafici, applicati al Nasdaq 100.</p>
+        <span class="go">apri dashboard →</span>
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">metodologia</div>
+    <h2>Dalla catena opzioni al grafico</h2>
+    <p>Il sito non ospita un database tradizionale: usa Google Sheets come storage leggero e ispezionabile, un foglio pubblicato per ogni giorno, indicizzati da un master file che il sito legge automaticamente.</p>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><span class="t"><b>Fonte dati</b> — catena opzioni SPX / NDX</span></div>
+      <div class="step"><span class="n">02</span><span class="t"><b>Script di raccolta</b> — calcola il net GEX e salva una riga</span></div>
+      <div class="step"><span class="n">03</span><span class="t"><b>Google Sheets</b> — un foglio per ogni giorno di dati</span></div>
+      <div class="step"><span class="n">04</span><span class="t"><b>Pubblicazione CSV</b> — foglio giorno + master index</span></div>
+      <div class="step"><span class="n">05</span><span class="t"><b>Dashboard</b> — fetch del CSV e rendering dei grafici</span></div>
+    </div>
+    <p style="margin-top:24px;"><a class="btn" href="pipeline.html">Leggi la pipeline completa</a></p>
+  </section>
+
+  <section>
+    <div class="label">stack</div>
+    <h2>Strumenti usati</h2>
+    <div class="stack">
+      <span class="badge">HTML / CSS / JS</span>
+      <span class="badge">Chart.js</span>
+      <span class="badge">Google Sheets</span>
+      <span class="badge">CSV pubblicato sul web</span>
+      <span class="badge">GitHub Pages</span>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h4>Chi ha costruito questo</h4>
+        <p>Progetto personale nato per monitorare la struttura del gamma sul mercato opzioni, costruito e mantenuto in autonomia: raccolta dati, calcolo e visualizzazione.</p>
+        <div class="social">
+          <a href="#" target="_blank" rel="noopener">GitHub</a>
+          <a href="#" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </div>
+      <div>
+        <h4>Naviga</h4>
+        <p><a href="dashboard-spx.html">Dashboard SPX</a></p>
+        <p><a href="dashboard-ndx.html">Dashboard NDX</a></p>
+        <p><a href="pipeline.html">Come funziona</a></p>
+        <p><a href="changelog.html">Note giornaliere</a></p>
+      </div>
+    </div>
+    <div class="disclaimer">
+      Progetto personale a scopo educativo e dimostrativo. I dati mostrati non costituiscono consulenza finanziaria.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

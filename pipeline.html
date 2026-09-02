@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Come funziona — netgexdaily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F4F0; --bg-alt:#EAEBE4; --ink:#15181A; --ink-soft:#565C57; --line:#D6D8CF;
+    --teal:#0F6E56; --teal-soft:#DCEEE7; --rust:#B3441F; --rust-soft:#F5E1D6;
+    --serif:'Newsreader',Georgia,serif;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:16px;}
+  a{color:inherit;}
+  .wrap{max-width:820px; margin:0 auto; padding:0 28px;}
+  header.site{border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:10;}
+  .navrow{max-width:920px; margin:0 auto; padding:18px 28px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{font-family:var(--mono); font-size:14px; font-weight:500; text-decoration:none; display:flex; align-items:center; gap:8px;}
+  .brand .dot{width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block;}
+  nav.links{display:flex; gap:26px; font-size:14px;}
+  nav.links a{text-decoration:none; color:var(--ink-soft); border-bottom:1px solid transparent; padding-bottom:2px;}
+  nav.links a:hover{color:var(--ink); border-bottom-color:var(--ink);}
+  nav.links a.active{color:var(--ink); border-bottom-color:var(--teal);}
+
+  .pagehead{padding:64px 0 40px;}
+  .kicker{font-family:var(--mono); font-size:13px; color:var(--ink-soft); margin-bottom:18px;}
+  h1{font-family:var(--serif); font-weight:500; font-size:38px; margin:0 0 18px; letter-spacing:-0.01em; max-width:20ch;}
+  .pagehead p{color:var(--ink-soft); font-size:17px; max-width:58ch; margin:0;}
+
+  section{padding:50px 0; border-top:1px solid var(--line);}
+  .label{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-bottom:14px;}
+  h2{font-family:var(--serif); font-weight:500; font-size:26px; margin:0 0 16px;}
+  section p{color:var(--ink-soft); max-width:64ch; font-size:15.5px;}
+  section p + p{margin-top:12px;}
+
+  /* pipeline stages */
+  .stage{display:grid; grid-template-columns:120px 1fr; gap:24px; padding:22px 0; border-top:1px solid var(--line);}
+  .stage:first-of-type{border-top:none;}
+  .stage .num{font-family:var(--mono); font-size:13px; color:var(--teal); padding-top:3px;}
+  .stage h3{font-family:var(--serif); font-weight:500; font-size:19px; margin:0 0 8px;}
+  .stage p{margin:0; font-size:14.5px; color:var(--ink-soft); max-width:56ch;}
+
+  /* gex explainer */
+  .gex-visual{margin:26px 0; border:1px solid var(--line); padding:24px; background:var(--bg-alt);}
+  .gex-visual svg{display:block; width:100%; height:auto;}
+  .legend{display:flex; gap:24px; margin-top:14px; font-family:var(--mono); font-size:12px; color:var(--ink-soft);}
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .legend .sw{width:10px; height:10px; display:inline-block;}
+
+  /* limits list */
+  .limits{margin-top:20px;}
+  .limit{display:flex; gap:14px; padding:14px 0; border-top:1px solid var(--line);}
+  .limit .tag{font-family:var(--mono); font-size:11px; color:var(--rust); border:1px solid var(--rust); padding:3px 8px; height:fit-content; flex-shrink:0;}
+  .limit .tag.next{color:var(--teal); border-color:var(--teal);}
+  .limit p{margin:0; font-size:14.5px;}
+
+  footer{border-top:1px solid var(--line); padding:36px 0 60px; font-size:13px; color:var(--ink-soft);}
+
+  @media (max-width:600px){
+    h1{font-size:30px;}
+    .stage{grid-template-columns:1fr; gap:6px;}
+    nav.links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="navrow">
+    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <nav class="links">
+      <a href="dashboard-spx.html">Dashboard SPX</a>
+      <a href="dashboard-ndx.html">Dashboard NDX</a>
+      <a href="pipeline.html" class="active">Come funziona</a>
+      <a href="changelog.html">Note giornaliere</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="pagehead">
+    <div class="kicker">metodologia</div>
+    <h1>Dalla catena opzioni al grafico che vedi</h1>
+    <p>Ogni giorno i dati attraversano cinque fasi, dalla raccolta grezza alla dashboard interattiva. Nessun backend proprietario: storage su Google Sheets, pubblicazione CSV, lettura client-side.</p>
+  </div>
+
+  <section>
+    <div class="label">pipeline — 5 fasi</div>
+
+    <div class="stage">
+      <div class="num">01</div>
+      <div>
+        <h3>Fonte dati</h3>
+        <p>Ogni intervallo, uno script legge la catena di opzioni di SPX e NDX (strike, open interest, gamma per strike) direttamente dai dati di mercato disponibili.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">02</div>
+      <div>
+        <h3>Script di raccolta</h3>
+        <p>Lo script aggrega l'open interest per strike, calcola il net gamma exposure e lo scrive come nuova riga sul foglio del giorno corrente, insieme a prezzo spot, volumi e agli altri indicatori che alimentano i quattro grafici.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">03</div>
+      <div>
+        <h3>Google Sheets come storage</h3>
+        <p>Ogni giorno di trading ha un proprio foglio. Non è un database vero e proprio, ma per un progetto personale è una scelta deliberata: zero infrastruttura da mantenere, dati sempre ispezionabili e correggibili a mano quando serve.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">04</div>
+      <div>
+        <h3>Pubblicazione CSV e master index</h3>
+        <p>Ogni foglio giorno viene pubblicato sul web in formato CSV. Un foglio separato, il master index, elenca tutti i giorni disponibili con la relativa data e il link CSV: è l'unica fonte che il sito deve leggere per sapere cosa mostrare nel calendario.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">05</div>
+      <div>
+        <h3>Dashboard</h3>
+        <p>La pagina scarica il master index, popola il calendario con i giorni disponibili, poi scarica e parsa il CSV del giorno selezionato per disegnare i quattro grafici con Chart.js, con refresh automatico ogni 60 secondi sul giorno corrente.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">cos'è il net gex</div>
+    <h2>Perché guardare il net gamma exposure</h2>
+    <p>Il net gamma exposure (net GEX) stima quanto i market maker devono comprare o vendere sull'indice sottostante per restare delta-neutrali man mano che il prezzo si muove, sommando il gamma di tutte le opzioni aperte su ogni strike.</p>
+    <p>Quando il net GEX è positivo, i market maker tendono a vendere sui rialzi e comprare sui ribassi: il mercato si comprime, la volatilità realizzata si smorza. Quando è negativo, succede l'opposto: le loro coperture amplificano il movimento, e la volatilità tende a espandersi. Il punto in cui il net GEX passa da positivo a negativo — la "linea dello zero" — è spesso il livello che i trader guardano come spartiacque tra regime di mercato calmo e regime di mercato instabile.</p>
+
+    <div class="gex-visual">
+      <svg viewBox="0 0 760 160" preserveAspectRatio="none">
+        <line x1="0" y1="80" x2="760" y2="80" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="3 4"/>
+        <path d="M0,80 C60,55 120,20 180,30 C240,40 260,75 320,80 C380,85 420,55 480,45 C540,35 580,60 640,80 C680,93 720,100 760,95 L760,80 L0,80 Z" fill="var(--teal)" opacity="0.16"/>
+        <path d="M0,80 C60,55 120,20 180,30 C240,40 260,75 320,80 C380,85 420,55 480,45 C540,35 580,60 640,80 C680,93 720,100 760,95" fill="none" stroke="var(--teal)" stroke-width="1.5"/>
+        <path d="M0,80 C60,105 120,140 180,130 C240,120 260,85 320,80 C380,75 420,105 480,115 C540,125 580,100 640,80 C680,67 720,60 760,65 L760,80 L0,80 Z" fill="var(--rust)" opacity="0.12"/>
+        <path d="M0,80 C60,105 120,140 180,130 C240,120 260,85 320,80 C380,75 420,105 480,115 C540,125 580,100 640,80 C680,67 720,60 760,65" fill="none" stroke="var(--rust)" stroke-width="1.5"/>
+      </svg>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--teal)"></span> net GEX positivo — mercato compresso</span>
+        <span><span class="sw" style="background:var(--rust)"></span> net GEX negativo — mercato instabile</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">limiti e prossimi sviluppi</div>
+    <h2>Cosa so che manca ancora</h2>
+    <div class="limits">
+      <div class="limit">
+        <span class="tag">limite</span>
+        <p>Google Sheets come storage non scala oltre qualche centinaio di giorni e non gestisce query o aggregazioni: va bene per un archivio consultabile, non per analisi storiche pesanti.</p>
+      </div>
+      <div class="limit">
+        <span class="tag next">prossimo</span>
+        <p>Migrare lo storage a un database vero (es. Postgres/SQLite) con un piccolo backend, per interrogare più giorni insieme invece di uno alla volta.</p>
+      </div>
+      <div class="limit">
+        <span class="tag">limite</span>
+        <p>Il refresh dei dati intraday dipende dal fetch lato client: se il browser resta chiuso, non c'è storico "al secondo", solo l'ultimo dato salvato nel foglio.</p>
+      </div>
+      <div class="limit">
+        <span class="tag next">prossimo</span>
+        <p>Aggiungere altri indici oltre SPX e NDX, e un sistema di alert quando il prezzo attraversa la linea dello zero gamma.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    Progetto personale a scopo educativo e dimostrativo. I dati mostrati non costituiscono consulenza finanziaria.
+  </div>
+</footer>
+
+</body>
+</html>

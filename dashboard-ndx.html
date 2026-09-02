@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard NDX — netgexdaily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS per uno stile moderno e pulito -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js per la visualizzazione del grafico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Date Adapter per gestire correttamente l'asse temporale in Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita doppie barre di scorrimento su Google Sites */
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .charts-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 16px;
+            min-height: 0;
+            overflow-y: auto; /* Consente lo scorrimento verticale dei grafici */
+            padding-right: 6px; /* Evita che la scrollbar si sovrapponga al contenuto */
+        }
+        .chart-panel {
+            position: relative;
+            height: 44vh; /* Mostra circa due grafici per schermata */
+            min-height: 320px; /* Altezza minima di sicurezza per una visualizzazione ottimale */
+            width: 100%;
+            flex-shrink: 0; /* Impedisce ai pannelli di comprimersi */
+        }
+        /* Personalizzazione barra di scorrimento interna per un look premium */
+        .charts-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .charts-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .charts-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .charts-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 p-2 flex flex-col justify-between h-full">
+
+    <div class="w-full flex items-center justify-between px-1 pb-2 mb-1 shrink-0">
+        <a href="index.html" class="flex items-center gap-2 text-[13px] font-medium text-slate-800" style="font-family:'IBM Plex Mono',monospace;">
+            <span class="inline-block w-[7px] h-[7px] rounded-full" style="background:#0F6E56"></span>netgexdaily
+        </a>
+        <div class="flex items-center gap-5 text-xs">
+            <a href="dashboard-spx.html" class="text-slate-500 hover:text-slate-800">SPX</a>
+            <a href="dashboard-ndx.html" class="font-semibold text-slate-800 border-b border-slate-800 pb-0.5">NDX</a>
+            <a href="pipeline.html" class="text-slate-500 hover:text-slate-800">Come funziona</a>
+            <a href="changelog.html" class="text-slate-500 hover:text-slate-800">Note</a>
+        </div>
+    </div>
+
+    <div id="ndx-todo-banner" class="w-full shrink-0 mb-1 px-3 py-2 rounded-lg text-xs font-medium hidden" style="background:#F5E1D6; color:#7A2E13;">
+        Il Master Index NDX non è ancora collegato: sostituisci MASTER_CSV_URL nel codice con il link pubblicato del tuo foglio master NDX.
+    </div>
+
+    <div class="w-full flex-1 min-h-0 bg-white rounded-xl shadow-md p-3 md:p-5 flex flex-col justify-between overflow-hidden">
+        <!-- Intestazione del widget -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-2 mb-2 gap-2 shrink-0">
+            <div>
+                <h1 id="chart-title" class="text-base md:text-lg font-bold text-slate-900">Andamento GEX, Volumi & Spot (Crawler)</h1>
+                <p class="text-[10px] text-slate-500 mt-0.5">Sorgente dati: Google Sheets (Aggiornato in tempo reale)</p>
+            </div>
+            <!-- Controlli e indicatori di stato -->
+            <div class="flex flex-wrap items-center gap-2">
+
+                <!-- Selettore Giorno (calendario) -->
+                <div class="relative">
+                    <button id="day-selector-btn" type="button" class="flex items-center bg-slate-100 hover:bg-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 gap-1.5 transition-colors">
+                        <span>📅</span>
+                        <span id="day-selector-label">Caricamento giorni...</span>
+                    </button>
+                    <div id="calendar-popup" class="hidden absolute z-50 top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 p-3 w-[280px]">
+                        <div class="flex items-center justify-between mb-2 px-1">
+                            <button id="cal-prev" type="button" class="text-slate-400 hover:text-indigo-600 px-2 py-1 rounded hover:bg-slate-100 text-sm">◀</button>
+                            <span id="cal-month-label" class="text-sm font-bold text-slate-800"></span>
+                            <button id="cal-next" type="button" class="text-slate-400 hover:text-indigo-600 px-2 py-1 rounded hover:bg-slate-100 text-sm">▶</button>
+                        </div>
+                        <div id="cal-weekdays" class="grid grid-cols-7 text-center text-[10px] font-semibold text-slate-400 mb-1"></div>
+                        <div id="cal-days" class="grid grid-cols-7 text-center text-xs gap-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Toggle Abilita/Disabilita Dati dalle 21 alle 22 -->
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-[11px] gap-1.5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="time-filter-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span class="ml-1.5 text-xs font-semibold text-slate-700 pr-1">Dati 21-22</span>
+                    </label>
+                </div>
+
+                <!-- Toggle Abilita/Disabilita EMA 9 Spot -->
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-[11px] gap-1.5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="ema-toggle" class="sr-only peer">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span class="ml-1.5 text-xs font-semibold text-slate-700 pr-1">EMA 9</span>
+                    </label>
+                </div>
+
+                <!-- Toggle Abilita/Disabilita Tooltip -->
+                <div class="flex items-center bg-slate-100 rounded-lg p-1 text-[11px] gap-1.5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="tooltip-toggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span class="ml-1.5 text-xs font-semibold text-slate-700 pr-1">Tooltip</span>
+                    </label>
+                </div>
+
+                <!-- Menu a Tendina (Dropdown) per la gestione dei Pannelli -->
+                <div class="relative inline-block text-left shrink-0" id="panels-menu-container">
+                    <button id="panels-menu-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors focus:outline-none select-none">
+                        <span>Pannelli ⚙️</span>
+                        <svg class="w-3 h-3 text-slate-500 transition-transform duration-200" id="panels-menu-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Contenuto del Dropdown -->
+                    <div id="panels-menu-dropdown" class="origin-top-right absolute right-0 mt-1.5 w-48 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-30 p-1.5 space-y-0.5">
+                        <!-- Interruttore Superiore -->
+                        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                            <span class="text-xs font-medium text-slate-700">Superiore</span>
+                            <div class="relative inline-flex items-center">
+                                <input type="checkbox" id="panel-top-checkbox" class="sr-only peer" checked>
+                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </div>
+                        </label>
+                        <!-- Interruttore CVD (Disattivato di base) -->
+                        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                            <span class="text-xs font-medium text-slate-700">CVD</span>
+                            <div class="relative inline-flex items-center">
+                                <input type="checkbox" id="panel-cvd-checkbox" class="sr-only peer">
+                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </div>
+                        </label>
+                        <!-- Interruttore Delta CVD (Disattivato di base) -->
+                        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                            <span class="text-xs font-medium text-slate-700">Delta CVD</span>
+                            <div class="relative inline-flex items-center">
+                                <input type="checkbox" id="panel-delta-cvd-checkbox" class="sr-only peer">
+                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </div>
+                        </label>
+                        <!-- Interruttore Inferiore -->
+                        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                            <span class="text-xs font-medium text-slate-700">Inferiore</span>
+                            <div class="relative inline-flex items-center">
+                                <input type="checkbox" id="panel-bottom-checkbox" class="sr-only peer" checked>
+                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+        
+                <div id="status-indicator" class="flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="status-text">Caricamento...</span>
+                </div>
+                <button id="refresh-btn" class="p-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors duration-200" title="Aggiorna ora">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 15M22 10v5h-5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sezione Grafici Interattiva -->
+        <div class="charts-wrapper flex-grow">
+            <!-- Pannello Superiore: MPOS Vol, MNEG Vol, SPOT & ZERO GAMMA -->
+            <div id="panel-top" class="chart-panel">
+                <canvas id="chartTop"></canvas>
+            </div>
+
+            <!-- Pannello Intermedio: CVD -->
+            <div id="panel-cvd" class="chart-panel">
+                <canvas id="chartCvd"></canvas>
+            </div>
+
+            <!-- Nuovo Pannello Intermedio: Delta CVD -->
+            <div id="panel-delta-cvd" class="chart-panel">
+                <canvas id="chartDeltaCvd"></canvas>
+            </div>
+            
+            <!-- Pannello Inferiore: Net GEX Vol -->
+            <div id="panel-bottom" class="chart-panel">
+                <canvas id="chartBottom"></canvas>
+            </div>
+
+            <!-- Overlay di errore o caricamento -->
+            <div id="overlay" class="absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center hidden z-10 transition-opacity duration-300 rounded-lg">
+                <div class="text-center p-4">
+                    <div id="overlay-icon" class="mb-2">
+                        <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <p id="overlay-text" class="text-sm font-medium text-slate-600">Download dei dati da Google Sheets...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info aggiuntive in basso -->
+        <div class="mt-1 pt-1 border-t border-slate-100 flex flex-row justify-between text-[10px] text-slate-400 gap-1 shrink-0">
+            <div>
+                <span>Aggiornamento automatico: </span>
+                <span id="countdown" class="font-semibold text-slate-600">60s</span>
+            </div>
+            <div id="last-update">
+                Ultimo controllo: --:--:--
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL del "Master Index" NDX: sostituisci con il link CSV pubblicato del tuo foglio master NDX
+        const MASTER_CSV_URL = 'INSERISCI_QUI_IL_LINK_CSV_DEL_MASTER_INDEX_NDX';
+        const UPDATE_INTERVAL = 60000; // 60 secondi
+
+        let availableDays = [];      // [{ label, url, dateObj }], ordinati dal più recente al più vecchio
+        let currentDayUrl = null;    // URL CSV del giorno correntemente selezionato
+        let currentDayLabel = '';    // Etichetta (data) del giorno correntemente selezionato
+
+        let chartTopInstance = null;
+        let chartCvdInstance = null;
+        let chartDeltaCvdInstance = null;
+        let chartBottomInstance = null;
+        let countdownValue = UPDATE_INTERVAL / 1000;
+        let countdownTimer = null;
+        let updateTimer = null;
+        let eventsBound = false;
+        
+        const showCrosshair = true;
+        const showData = true;      
+        let showTooltip = true;   
+        let show21to22Data = true;
+        let showEma9State = false;
+        
+        let showPanelTop = true;
+        let showPanelCvd = false;       // Disattivato di base
+        let showPanelDeltaCvd = false; // Disattivato di base
+        let showPanelBottom = true;
+        let rawChartData = [];
+        let activeFilteredData = [];
+
+        const panelTop = document.getElementById('panel-top');
+        const panelCvd = document.getElementById('panel-cvd');
+        const panelDeltaCvd = document.getElementById('panel-delta-cvd');
+        const panelBottom = document.getElementById('panel-bottom');
+        const tooltipToggle = document.getElementById('tooltip-toggle');
+        const timeFilterToggle = document.getElementById('time-filter-toggle');
+        const emaToggle = document.getElementById('ema-toggle');
+
+        const panelsMenuBtn = document.getElementById('panels-menu-btn');
+        const panelsMenuDropdown = document.getElementById('panels-menu-dropdown');
+        const panelsMenuArrow = document.getElementById('panels-menu-arrow');
+        const panelTopCheckbox = document.getElementById('panel-top-checkbox');
+        const panelCvdCheckbox = document.getElementById('panel-cvd-checkbox');
+        const panelDeltaCvdCheckbox = document.getElementById('panel-delta-cvd-checkbox');
+        const panelBottomCheckbox = document.getElementById('panel-bottom-checkbox');
+
+        panelsMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = panelsMenuDropdown.classList.contains('hidden');
+            if (isHidden) {
+                panelsMenuDropdown.classList.remove('hidden');
+                panelsMenuArrow.classList.add('rotate-180');
+            } else {
+                panelsMenuDropdown.classList.add('hidden');
+                panelsMenuArrow.classList.remove('rotate-180');
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('panels-menu-container').contains(e.target)) {
+                panelsMenuDropdown.classList.add('hidden');
+                panelsMenuArrow.classList.remove('rotate-180');
+            }
+        });
+
+        function applyPanelsVisibility() {
+            if (showPanelTop) {
+                panelTop.classList.remove('hidden');
+            } else {
+                panelTop.classList.add('hidden');
+            }
+
+            if (showPanelCvd) {
+                panelCvd.classList.remove('hidden');
+            } else {
+                panelCvd.classList.add('hidden');
+            }
+
+            if (showPanelDeltaCvd) {
+                panelDeltaCvd.classList.remove('hidden');
+            } else {
+                panelDeltaCvd.classList.add('hidden');
+            }
+
+            if (showPanelBottom) {
+                panelBottom.classList.remove('hidden');
+            } else {
+                panelBottom.classList.add('hidden');
+            }
+
+            const visiblePanels = [];
+            if (showPanelTop) visiblePanels.push(panelTop);
+            if (showPanelCvd) visiblePanels.push(panelCvd);
+            if (showPanelDeltaCvd) visiblePanels.push(panelDeltaCvd);
+            if (showPanelBottom) visiblePanels.push(panelBottom);
+
+            panelTop.classList.remove('border-t', 'pt-1');
+            panelCvd.classList.remove('border-t', 'pt-1');
+            panelDeltaCvd.classList.remove('border-t', 'pt-1');
+            panelBottom.classList.remove('border-t', 'pt-1');
+
+            for (let i = 1; i < visiblePanels.length; i++) {
+                visiblePanels[i].classList.add('border-t', 'pt-1');
+            }
+
+            setTimeout(() => {
+                if (chartTopInstance) chartTopInstance.resize();
+                if (chartCvdInstance) chartCvdInstance.resize();
+                if (chartDeltaCvdInstance) chartDeltaCvdInstance.resize();
+                if (chartBottomInstance) chartBottomInstance.resize();
+            }, 50);
+        }
+
+        panelTopCheckbox.addEventListener('change', (e) => {
+            showPanelTop = e.target.checked;
+            applyPanelsVisibility();
+        });
+        panelCvdCheckbox.addEventListener('change', (e) => {
+            showPanelCvd = e.target.checked;
+            applyPanelsVisibility();
+        });
+        emaToggle.addEventListener('change', (e) => {
+            showEma9State = e.target.checked;
+            filterAndRenderData();
+        });
+        panelDeltaCvdCheckbox.addEventListener('change', (e) => {
+            showPanelDeltaCvd = e.target.checked;
+            applyPanelsVisibility();
+        });
+        panelBottomCheckbox.addEventListener('change', (e) => {
+            showPanelBottom = e.target.checked;
+            applyPanelsVisibility();
+        });
+        tooltipToggle.addEventListener('change', (e) => {
+            showTooltip = e.target.checked;
+            updateTooltipVisibility();
+        });
+        timeFilterToggle.addEventListener('change', (e) => {
+            show21to22Data = e.target.checked;
+            filterAndRenderData();
+        });
+
+        function updateTooltipVisibility() {
+            [chartTopInstance, chartCvdInstance, chartDeltaCvdInstance, chartBottomInstance].forEach(chart => {
+                if (chart) {
+                    chart.options.plugins.tooltip.enabled = showTooltip;
+                    chart.update('none');
+                }
+            });
+        }
+
+        // Forza la formattazione a 24 ore escludendo AM/PM
+        function formatTimeItalian(dateObj) {
+            return dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function filterAndRenderData() {
+            let filteredData = [...rawChartData];
+            
+            // Se i dati delle 21-22 sono disabilitati, filtriamo completamente l'array per eliminare lo spazio sul grafico
+            if (!show21to22Data) {
+                filteredData = filteredData.filter(d => {
+                    const hours = d.time.getHours();
+                    const minutes = d.time.getMinutes();
+                    const seconds = d.time.getSeconds();
+                    
+                    const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                    const startSeconds = 21 * 3600; // 21:00:00
+                    const endSeconds = 22 * 3600;   // 22:00:00
+                    
+                    return !(totalSeconds >= startSeconds && totalSeconds <= endSeconds);
+                });
+            }
+
+            const validRecords = filteredData.filter(d => d.netGex !== null);
+            const latestRecord = validRecords[validRecords.length - 1];
+            const dayPrefix = currentDayLabel ? `[${currentDayLabel}] ` : '';
+            if (latestRecord && latestRecord.time) {
+                const formattedTime = formatTimeItalian(latestRecord.time);
+                document.getElementById('chart-title').textContent = `${dayPrefix}Andamento GEX, Volumi & Spot (Crawler) - Ultimo Check delle ${formattedTime}`;
+            } else {
+                document.getElementById('chart-title').textContent = `${dayPrefix}Andamento GEX, Volumi & Spot (Crawler)`;
+            }
+
+            activeFilteredData = filteredData;
+            renderCharts(filteredData);
+        }
+
+        function bindGroupCrosshairEvents(canvasElement, currentChart, chartsGroup) {
+            function findIndexByTimestamp(datasetData, timestamp) {
+                if (!datasetData || !timestamp) return -1;
+                const targetTime = new Date(timestamp).getTime();
+                return datasetData.findIndex(item => item && item.x && new Date(item.x).getTime() === targetTime);
+            }
+
+            canvasElement.addEventListener('mousemove', (e) => {
+                if (!showCrosshair) return;
+
+                const rect = canvasElement.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const points = currentChart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
+                if (points.length > 0) {
+                    const activeElement = points[0];
+                    const indexInActive = activeElement.index;
+                    const activeDS = currentChart.data.datasets[activeElement.datasetIndex];
+
+                    if (activeDS && activeDS.data && activeDS.data[indexInActive]) {
+                        const timestamp = activeDS.data[indexInActive].x;
+
+                        chartsGroup.forEach(targetChart => {
+                            if (!targetChart || targetChart.canvas.offsetParent === null) return;
+
+                            const pixelTarget = targetChart.scales.x.getPixelForValue(timestamp);
+                            targetChart.crosshair = { x: pixelTarget };
+
+                            const targetActive = [];
+                            for (let i = 0; i < targetChart.data.datasets.length; i++) {
+                                if (targetChart.isDatasetVisible(i)) {
+                                    const dsIndex = findIndexByTimestamp(targetChart.data.datasets[i].data, timestamp);
+                                    if (dsIndex !== -1) {
+                                        targetActive.push({ datasetIndex: i, index: dsIndex });
+                                    }
+                                }
+                            }
+                            const tooltipY = (targetChart === currentChart) ? y : (targetChart.chartArea.top + (targetChart.chartArea.bottom - targetChart.chartArea.top) / 2);
+                            
+                            if (showTooltip) {
+                                targetChart.tooltip.setActiveElements(targetActive, { 
+                                    x: pixelTarget, 
+                                    y: tooltipY 
+                                });
+                            } else {
+                                targetChart.tooltip.setActiveElements([], { x: 0, y: 0 });
+                            }
+                            targetChart.update('none');
+                        });
+                    }
+                }
+            });
+
+            canvasElement.addEventListener('mouseleave', () => {
+                chartsGroup.forEach(targetChart => {
+                    if (!targetChart) return;
+                    targetChart.crosshair = { x: null };
+                    targetChart.tooltip.setActiveElements([], { x: 0, y: 0 });
+                    targetChart.update('none');
+                });
+            });
+        }
+
+        function parseCSVLine(text, delimiter = ',') {
+            let p = '', c = '', r = [];
+            let q = false;
+            for (let i = 0; i < text.length; i++) {
+                c = text[i];
+                if (c === '"') {
+                    q = !q;
+                } else if (c === delimiter && !q) {
+                    r.push(p.trim());
+                    p = '';
+                } else {
+                    p += c;
+                }
+            }
+            r.push(p.trim());
+            return r;
+        }
+
+        function safeParseFloat(valStr) {
+            if (valStr === undefined || valStr.trim() === '') return null;
+            let cleanStr = valStr.trim().replace(',', '.');
+            const num = parseFloat(cleanStr);
+            return isNaN(num) ? null : num;
+        }
+
+        function detectCSVBaseDate(lines, headers, delimiter) {
+            const gexDateIndex = headers.indexOf('gex_datetime');
+            const timeIndex = headers.indexOf('crawler_check_time');
+            
+            for (let i = 1; i < Math.min(lines.length, 100); i++) {
+                if (lines[i].trim() === '') continue;
+                const currentline = parseCSVLine(lines[i], delimiter);
+                
+                if (gexDateIndex !== -1 && currentline[gexDateIndex]) {
+                    const val = currentline[gexDateIndex].trim();
+                    const matchISO = val.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+                    if (matchISO) {
+                        return new Date(parseInt(matchISO[1], 10), parseInt(matchISO[2], 10) - 1, parseInt(matchISO[3], 10));
+                    }
+                    const matchEuro = val.match(/^(\d{1,2})[-/](\d{2})[-/](\d{4})/);
+                    if (matchEuro) {
+                        return new Date(parseInt(matchEuro[3], 10), parseInt(matchEuro[2], 10) - 1, parseInt(matchEuro[1], 10));
+                    }
+                }
+                
+                if (timeIndex !== -1 && currentline[timeIndex]) {
+                    const val = currentline[timeIndex].trim();
+                    const matchISO = val.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+                    if (matchISO) {
+                        return new Date(parseInt(matchISO[1], 10), parseInt(matchISO[2], 10) - 1, parseInt(matchISO[3], 10));
+                    }
+                    const matchEuro = val.match(/^(\d{1,2})[-/](\d{2})[-/](\d{4})/);
+                    if (matchEuro) {
+                        return new Date(parseInt(matchEuro[3], 10), parseInt(matchEuro[2], 10) - 1, parseInt(matchEuro[1], 10));
+                    }
+                }
+            }
+            return null;
+        }
+
+        function parseFlexibleDate(dateStr, baseDateStr, fallbackDate) {
+            if (!dateStr) return new Date(NaN);
+            dateStr = dateStr.trim();
+            let baseYear = null;
+            let baseMonth = null;
+            let baseDay = null;
+
+            if (baseDateStr) {
+                baseDateStr = baseDateStr.trim();
+                const matchISO = baseDateStr.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+                if (matchISO) {
+                    baseYear = parseInt(matchISO[1], 10);
+                    baseMonth = parseInt(matchISO[2], 10) - 1;
+                    baseDay = parseInt(matchISO[3], 10);
+                } else {
+                    const matchEuro = baseDateStr.match(/^(\d{1,2})[-/](\d{2})[-/](\d{4})/);
+                    if (matchEuro) {
+                        baseYear = parseInt(matchEuro[3], 10);
+                        baseMonth = parseInt(matchEuro[2], 10) - 1;
+                        baseDay = parseInt(matchEuro[1], 10);
+                    }
+                }
+            }
+
+            if (baseYear === null) {
+                const matchISO = dateStr.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+                if (matchISO) {
+                    baseYear = parseInt(matchISO[1], 10);
+                    baseMonth = parseInt(matchISO[2], 10) - 1;
+                    baseDay = parseInt(matchISO[3], 10);
+                } else {
+                    const matchEuro = dateStr.match(/^(\d{1,2})[-/](\d{2})[-/](\d{4})/);
+                    if (matchEuro) {
+                        baseYear = parseInt(matchEuro[3], 10);
+                        baseMonth = parseInt(matchEuro[2], 10) - 1;
+                        baseDay = parseInt(matchEuro[1], 10);
+                    }
+                }
+            }
+
+            if (baseYear === null && fallbackDate) {
+                baseYear = fallbackDate.getFullYear();
+                baseMonth = fallbackDate.getMonth();
+                baseDay = fallbackDate.getDate();
+            }
+
+            if (baseYear === null) {
+                const now = new Date();
+                baseYear = now.getFullYear();
+                baseMonth = now.getMonth();
+                baseDay = now.getDate();
+            }
+
+            const timeMatch = dateStr.match(/(?:^|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?(?:$|\s)/);
+            if (timeMatch) {
+                const hours = parseInt(timeMatch[1], 10);
+                const minutes = parseInt(timeMatch[2], 10);
+                const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+                return new Date(baseYear, baseMonth, baseDay, hours, minutes, seconds);
+            }
+
+            let parsed = new Date(dateStr);
+            if (!isNaN(parsed.getTime())) return parsed;
+
+            return new Date(NaN);
+        }
+
+        function csvToJSON(csvText) {
+            const lines = csvText.split(/\r?\n/);
+            if (lines.length === 0 || lines[0].trim() === '') return [];
+            let headerLineIndex = -1;
+            let headers = [];
+            let delimiter = ',';
+            const testDelimiters = [',', ';', '\t'];
+            for (let i = 0; i < Math.min(lines.length, 10); i++) {
+                if (lines[i].trim() === '') continue;
+                const line = lines[i];
+                for (const d of testDelimiters) {
+                    let tempHeaders = parseCSVLine(line, d);
+                    tempHeaders = tempHeaders.map(h => h.replace(/^\uFEFF/, '').trim());
+                    if (tempHeaders.includes('crawler_check_time')) {
+                        headers = tempHeaders;
+                        headerLineIndex = i;
+                        delimiter = d;
+                        break;
+                    }
+                }
+                if (headers.length > 0) break;
+            }
+            if (headers.length === 0) {
+                headers = parseCSVLine(lines[0], ',').map(h => h.replace(/^\uFEFF/, '').trim());
+                headerLineIndex = 0;
+                delimiter = ',';
+            }
+
+            const fallbackDate = detectCSVBaseDate(lines, headers, delimiter);
+
+            const timeIndex = headers.indexOf('crawler_check_time');
+            const mposIndex = headers.indexOf('mpos_vol');
+            const mnegIndex = headers.indexOf('mneg_vol');
+            const spotIndex = headers.indexOf('spot');
+            const netGexIndex = headers.indexOf('net_gex_vol');
+            const gexDateIndex = headers.indexOf('gex_datetime');
+            const zeroGammaIndex = headers.indexOf('zero_gamma');
+            const cvdIndex = headers.findIndex(h => h.toLowerCase() === 'cvd' || h.toLowerCase() === 'cvd_vol' || h.toLowerCase() === 'cvd_val');
+            const deltaCvdIndex = headers.findIndex(h => h.toLowerCase() === 'delta cvd' || h.toLowerCase() === 'delta_cvd' || h.toLowerCase() === 'deltacvd' || h.toLowerCase() === 'delta_gex_vol' || h.toLowerCase() === 'delta_cvd_vol');
+            
+            if (timeIndex === -1 || netGexIndex === -1) {
+                console.error("Intestazioni trovate:", headers, "Delimitatore usato:", delimiter);
+                throw new Error("Colonne richieste non trovate.");
+            }
+            const result = [];
+            for (let i = headerLineIndex + 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const currentline = parseCSVLine(lines[i], delimiter);
+                const maxIndex = Math.max(timeIndex, mposIndex, mnegIndex, spotIndex, netGexIndex, zeroGammaIndex);
+                if (currentline.length <= maxIndex) continue;
+                const rawDate = currentline[timeIndex];
+                const rawBaseDate = (gexDateIndex !== -1) ? currentline[gexDateIndex] : '';
+                
+                const parsedDate = parseFlexibleDate(rawDate, rawBaseDate, fallbackDate);
+                
+                if (isNaN(parsedDate.getTime())) continue;
+                const parsedNetGex = safeParseFloat(currentline[netGexIndex]);
+                const parsedMpos = safeParseFloat(currentline[mposIndex]);
+                const parsedMneg = safeParseFloat(currentline[mnegIndex]);
+                const parsedSpot = (spotIndex !== -1) ? safeParseFloat(currentline[spotIndex]) : null;
+                const parsedZeroGamma = (zeroGammaIndex !== -1) ? safeParseFloat(currentline[zeroGammaIndex]) : null;
+                const parsedCvd = (cvdIndex !== -1) ? safeParseFloat(currentline[cvdIndex]) : null;
+                const parsedDeltaCvd = (deltaCvdIndex !== -1) ? safeParseFloat(currentline[deltaCvdIndex]) : null;
+                if (parsedNetGex !== null) {
+                    result.push({ time: parsedDate, mpos: parsedMpos, mneg: parsedMneg, spot: parsedSpot, zeroGamma: parsedZeroGamma, netGex: parsedNetGex, cvd: parsedCvd, deltaCvd: parsedDeltaCvd });
+                }
+            }
+            return result.sort((a, b) => a.time - b.time);
+        }
+
+        function showOverlay(text, isError = false) {
+            const overlay = document.getElementById('overlay');
+            const overlayText = document.getElementById('overlay-text');
+            const overlayIcon = document.getElementById('overlay-icon');
+            overlayText.textContent = text;
+            if (isError) {
+                overlayText.className = "text-sm font-medium text-red-600";
+                overlayIcon.innerHTML = `<svg class="h-8 w-8 text-red-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+            } else {
+                overlayText.className = "text-sm font-medium text-slate-600";
+                overlayIcon.innerHTML = `<svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            }
+            overlay.classList.remove('hidden');
+        }
+
+        function hideOverlay() {
+            document.getElementById('overlay').classList.add('hidden');
+        }
+
+        function updateStatus(text, type = 'success') {
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            statusText.textContent = text;
+            if (type === 'error') {
+                statusIndicator.className = "flex items-center gap-1.5 text-[10px] font-medium text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full";
+                statusIndicator.querySelector('span').className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+            } else if (type === 'loading') {
+                statusIndicator.className = "flex items-center gap-1.5 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full";
+                statusIndicator.querySelector('span').className = "w-1.5 h-1.5 rounded-full bg-amber-500 animate-spin";
+            } else {
+                statusIndicator.className = "flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full";
+                statusIndicator.querySelector('span').className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+            }
+        }
+
+        function calculateEMA(data, period) {
+            let ema = [];
+            let k = 2 / (period + 1);
+            let sum = 0;
+            let validCount = 0;
+
+            for (let i = 0; i < data.length; i++) {
+                if (data[i] === null) {
+                    ema.push(null);
+                    continue;
+                }
+                validCount++;
+                if (validCount < period) {
+                    sum += data[i];
+                    ema.push(null);
+                } else if (validCount === period) {
+                    sum += data[i];
+                    let initialEma = sum / period;
+                    ema.push(initialEma);
+                } else {
+                    let prevEma = null;
+                    for (let j = i - 1; j >= 0; j--) {
+                        if (ema[j] !== null) {
+                            prevEma = ema[j];
+                            break;
+                        }
+                    }
+                    if (prevEma !== null) {
+                        ema.push(data[i] * k + prevEma * (1 - k));
+                    } else {
+                        ema.push(null);
+                    }
+                }
+            }
+            return ema;
+        }
+
+        const verticalLinePlugin = {
+            id: 'verticalLine',
+            afterDraw: (chart) => {
+                if (chart.crosshair && chart.crosshair.x !== null) {
+                    const x = chart.crosshair.x;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, chart.chartArea.top);
+                    ctx.lineTo(x, chart.chartArea.bottom);
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        };
+
+        function createChartConfig(type, datasets, titleText, optionsOverride = {}) {
+            const baseConfig = {
+                type: 'line',
+                data: { datasets: datasets },
+                plugins: [verticalLinePlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 10,
+                                padding: 8,
+                                font: { size: 9, weight: 'bold' },
+                                color: '#475569'
+                            }
+                        },
+                        tooltip: {
+                            enabled: showTooltip,
+                            padding: 6,
+                            titleFont: { size: 10, weight: 'bold' },
+                            bodyFont: { size: 9 },
+                            multiKeyBackground: 'transparent',
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            borderColor: 'rgba(51, 65, 85, 0.5)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: function(context) {
+                                    // Formato orario italiano 24 ore senza data (Senza AM/PM)
+                                    if (context[0] && context[0].parsed.x) {
+                                        const d = new Date(context[0].parsed.x);
+                                        const oreMinuti = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false });
+                                        return oreMinuti;
+                                    }
+                                    return '';
+                                },
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                parser: 'iso',
+                                unit: 'minute',
+                                stepSize: 30,
+                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
+                            },
+                            grid: { color: 'rgba(241, 245, 249, 1)', drawTicks: false },
+                            ticks: { font: { size: 8, family: 'monospace' }, color: '#64748b', maxRotation: 0, autoSkip: true, padding: 4 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(241, 245, 249, 1)' },
+                            ticks: { font: { size: 8 }, color: '#64748b', padding: 4 }
+                        }
+                    }
+                }
+            };
+
+            // Fusione sicura e selettiva per non distruggere le configurazioni base dei tooltip e della legenda
+            if (optionsOverride.scales) {
+                Object.assign(baseConfig.options.scales, optionsOverride.scales);
+            }
+            if (optionsOverride.plugins) {
+                if (optionsOverride.plugins.tooltip) {
+                    Object.assign(baseConfig.options.plugins.tooltip, optionsOverride.plugins.tooltip);
+                }
+                if (optionsOverride.plugins.legend) {
+                    Object.assign(baseConfig.options.plugins.legend, optionsOverride.plugins.legend);
+                }
+            }
+
+            const { scales, plugins, ...otherOverrides } = optionsOverride;
+            Object.assign(baseConfig.options, otherOverrides);
+
+            return baseConfig;
+        }
+
+        function renderCharts(data) {
+            if (data.length === 0) return;
+
+            const mposData = data.map(d => ({ x: d.time, y: d.mpos }));
+            const mnegData = data.map(d => ({ x: d.time, y: d.mneg }));
+            const spotValuesRaw = data.map(d => d.spot);
+            const spotData = data.map(d => ({ x: d.time, y: d.spot }));
+            const zeroGammaData = data.map(d => ({ x: d.time, y: d.zeroGamma }));
+            const netGexData = data.map(d => ({ x: d.time, y: d.netGex }));
+            const cvmData = data.map(d => ({ x: d.time, y: d.cvd }));
+            const deltaCvdData = data.map(d => ({ x: d.time, y: d.deltaCvd }));
+
+            // Troviamo i timestamp limite reali dei dati attuali filtrati
+            const minTime = data[0].time;
+            const maxTime = data[data.length - 1].time;
+
+            const chartsGroup = [];
+
+            // 1. Pannello Superiore (Unificato su un'unica scala Y per allineare graficamente i punti)
+            const topDatasets = [
+                { 
+                    label: 'MPOS Vol (B)', 
+                    data: mposData, 
+                    borderColor: '#10b981', 
+                    backgroundColor: '#10b981', 
+                    borderWidth: 1.5, 
+                    pointRadius: 2.5, 
+                    pointBackgroundColor: '#10b981',
+                    pointHoverRadius: 4.5 
+                },
+                { 
+                    label: 'MNEG Vol (D)', 
+                    data: mnegData, 
+                    borderColor: '#ef4444', 
+                    backgroundColor: '#ef4444', 
+                    borderWidth: 1.5, 
+                    pointRadius: 2.5, 
+                    pointBackgroundColor: '#ef4444',
+                    pointHoverRadius: 4.5 
+                },
+                { 
+                    label: 'SPOT Price (J)', 
+                    data: spotData, 
+                    borderColor: '#3b82f6', 
+                    backgroundColor: '#3b82f6', 
+                    borderWidth: 2, 
+                    pointRadius: 3, 
+                    pointBackgroundColor: '#3b82f6',
+                    pointHoverRadius: 5 
+                },
+                { 
+                    label: 'Zero Gamma (A)', 
+                    data: zeroGammaData, 
+                    borderColor: '#f59e0b', 
+                    backgroundColor: '#f59e0b', 
+                    borderWidth: 1.5, 
+                    pointRadius: 2.5, 
+                    pointBackgroundColor: '#f59e0b',
+                    pointHoverRadius: 4.5 
+                }
+            ];
+
+            if (showEma9State) {
+                const ema9Values = calculateEMA(spotValuesRaw, 9);
+                const ema9Data = data.map((d, i) => ({ x: d.time, y: ema9Values[i] }));
+                topDatasets.push({
+                    label: 'EMA 9 (Spot)',
+                    data: ema9Data,
+                    borderColor: '#a855f7',
+                    backgroundColor: '#a855f7',
+                    borderWidth: 1.8,
+                    borderDash: [2, 3], 
+                    borderCapStyle: 'round',
+                    pointRadius: 0,
+                    pointHoverRadius: 3
+                });
+            }
+
+            if (chartTopInstance) {
+                chartTopInstance.options.scales.x.min = minTime;
+                chartTopInstance.options.scales.x.max = maxTime;
+                chartTopInstance.data.datasets = topDatasets;
+                chartTopInstance.update('none');
+                chartsGroup.push(chartTopInstance);
+            } else {
+                const ctxTop = document.getElementById('chartTop').getContext('2d');
+                chartTopInstance = new Chart(ctxTop, createChartConfig('top', topDatasets, 'Pannello Superiore', {
+                    scales: {
+                        x: { 
+                            type: 'time', 
+                            min: minTime,
+                            max: maxTime,
+                            time: {
+                                parser: 'iso',
+                                unit: 'minute',
+                                stepSize: 30,
+                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
+                            },
+                            grid: { color: 'rgba(241, 245, 249, 1)' }, 
+                            ticks: { font: { size: 8 }, autoSkip: true, maxRotation: 0 } 
+                        },
+                        y: { 
+                            position: 'left', 
+                            grid: { color: 'rgba(241, 245, 249, 1)' }, 
+                            ticks: { font: { size: 8 } },
+                            title: { display: true, text: 'Prezzo / Strike', font: { size: 9, weight: 'bold' }, color: '#475569' }
+                        }
+                    }
+                }));
+                chartsGroup.push(chartTopInstance);
+            }
+
+            // 2. Pannello CVD
+            const cvdDatasets = [{ 
+                label: 'CVD (Cumulative Volume Delta)', 
+                data: cvmData, 
+                borderColor: '#06b6d4', 
+                backgroundColor: 'rgba(6, 182, 212, 0.05)', 
+                borderWidth: 1.5, 
+                fill: true, 
+                pointRadius: 2, 
+                pointBackgroundColor: '#06b6d4',
+                pointHoverRadius: 4 
+            }];
+            if (chartCvdInstance) {
+                chartCvdInstance.options.scales.x.min = minTime;
+                chartCvdInstance.options.scales.x.max = maxTime;
+                chartCvdInstance.data.datasets = cvdDatasets;
+                chartCvdInstance.update('none');
+                chartsGroup.push(chartCvdInstance);
+            } else {
+                const ctxCvd = document.getElementById('chartCvd').getContext('2d');
+                chartCvdInstance = new Chart(ctxCvd, createChartConfig('cvd', cvdDatasets, 'Cumulative Volume Delta (CVD)', {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            min: minTime,
+                            max: maxTime,
+                            time: {
+                                parser: 'iso',
+                                unit: 'minute',
+                                stepSize: 30,
+                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
+                            },
+                            grid: { color: 'rgba(241, 245, 249, 1)', drawTicks: false },
+                            ticks: { font: { size: 8, family: 'monospace' }, color: '#64748b', maxRotation: 0, autoSkip: true, padding: 4 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(241, 245, 249, 1)' },
+                            ticks: { font: { size: 8 }, color: '#64748b', padding: 4 }
+                        }
+                    }
+                }));
+                chartsGroup.push(chartCvdInstance);
+            }
+
+            // 3. Pannello Delta CVD
+            const deltaCvdDatasets = [{ 
+                label: 'Delta CVD (Variazione Istantanea)', 
+                data: deltaCvdData, 
+                borderColor: '#db2777', 
+                backgroundColor: 'rgba(219, 39, 119, 0.05)', 
+                borderWidth: 1.5, 
+                fill: true, 
+                pointRadius: 2.5, 
+                pointBackgroundColor: '#db2777',
+                pointHoverRadius: 4.5 
+            }];
+            if (chartDeltaCvdInstance) {
+                chartDeltaCvdInstance.options.scales.x.min = minTime;
+                chartDeltaCvdInstance.options.scales.x.max = maxTime;
+                chartDeltaCvdInstance.data.datasets = deltaCvdDatasets;
+                chartDeltaCvdInstance.update('none');
+                chartsGroup.push(chartDeltaCvdInstance);
+            } else {
+                const ctxDeltaCvd = document.getElementById('chartDeltaCvd').getContext('2d');
+                chartDeltaCvdInstance = new Chart(ctxDeltaCvd, createChartConfig('deltaCvd', deltaCvdDatasets, 'Delta CVD', {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            min: minTime,
+                            max: maxTime,
+                            time: {
+                                parser: 'iso',
+                                unit: 'minute',
+                                stepSize: 30,
+                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
+                            },
+                            grid: { color: 'rgba(241, 245, 249, 1)', drawTicks: false },
+                            ticks: { font: { size: 8, family: 'monospace' }, color: '#64748b', maxRotation: 0, autoSkip: true, padding: 4 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(241, 245, 249, 1)' },
+                            ticks: { font: { size: 8 }, color: '#64748b', padding: 4 }
+                        }
+                    }
+                }));
+                chartsGroup.push(chartDeltaCvdInstance);
+            }
+
+            // 4. Pannello Inferiore (Net GEX Vol con linee di soglia e colorazione dinamica)
+            const bottomDatasets = [
+                {
+                    label: 'Net GEX Vol',
+                    data: netGexData,
+                    borderColor: function(context) {
+                        const chart = context.chart;
+                        const {ctx, chartArea} = chart;
+                        if (!chartArea) return '#6366f1';
+                        const yAxis = chart.scales.y;
+                        const yZero = yAxis.getPixelForValue(0);
+                        const top = chartArea.top;
+                        const bottom = chartArea.bottom;
+                        let zeroRatio = (yZero - top) / (bottom - top);
+                        
+                        if (isNaN(zeroRatio) || !isFinite(zeroRatio)) {
+                            zeroRatio = 0.5;
+                        } else {
+                            zeroRatio = Math.max(0, Math.min(1, zeroRatio));
+                        }
+
+                        const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+                        gradient.addColorStop(0, 'rgb(16, 185, 129)'); 
+                        gradient.addColorStop(zeroRatio, 'rgb(16, 185, 129)');
+                        gradient.addColorStop(zeroRatio, 'rgb(244, 63, 94)'); 
+                        gradient.addColorStop(1, 'rgb(244, 63, 94)');
+                        return gradient;
+                    },
+                    backgroundColor: function(context) {
+                        const chart = context.chart;
+                        const {ctx, chartArea} = chart;
+                        if (!chartArea) return 'rgba(99, 102, 241, 0.05)';
+                        const yAxis = chart.scales.y;
+                        const yZero = yAxis.getPixelForValue(0);
+                        const top = chartArea.top;
+                        const bottom = chartArea.bottom;
+                        let zeroRatio = (yZero - top) / (bottom - top);
+                        
+                        if (isNaN(zeroRatio) || !isFinite(zeroRatio)) {
+                            zeroRatio = 0.5;
+                        } else {
+                            zeroRatio = Math.max(0, Math.min(1, zeroRatio));
+                        }
+
+                        const gradient = ctx.createLinearGradient(0, top, 0, bottom);
+                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)'); 
+                        gradient.addColorStop(zeroRatio, 'rgba(16, 185, 129, 0.01)');
+                        gradient.addColorStop(zeroRatio, 'rgba(244, 63, 94, 0.01)');
+                        gradient.addColorStop(1, 'rgba(244, 63, 94, 0.25)'); 
+                        return gradient;
+                    },
+                    borderWidth: 2,
+                    fill: 'origin',
+                    pointRadius: 2.5,
+                    pointBackgroundColor: function(context) {
+                        const index = context.dataIndex;
+                        const datum = context.dataset.data[index];
+                        if (!datum || datum.y === null) return '#6366f1';
+                        return datum.y >= 0 ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+                    },
+                    pointBorderColor: function(context) {
+                        const index = context.dataIndex;
+                        const datum = context.dataset.data[index];
+                        if (!datum || datum.y === null) return '#6366f1';
+                        return datum.y >= 0 ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+                    },
+                    pointHoverRadius: 4.5,
+                    spanGaps: false
+                },
+                {
+                    label: 'Linea Zero',
+                    data: data.map(d => ({ x: d.time, y: 0 })),
+                    borderColor: 'rgba(71, 85, 105, 0.4)',
+                    borderWidth: 1.2,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Soglia +50.000',
+                    data: data.map(d => ({ x: d.time, y: 50000 })),
+                    borderColor: 'rgba(71, 85, 105, 0.6)',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Soglia -50.000',
+                    data: data.map(d => ({ x: d.time, y: -50000 })),
+                    borderColor: 'rgba(71, 85, 105, 0.6)',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ];
+
+            if (chartBottomInstance) {
+                chartBottomInstance.options.scales.x.min = minTime;
+                chartBottomInstance.options.scales.x.max = maxTime;
+                chartBottomInstance.data.datasets = bottomDatasets;
+                chartBottomInstance.update('none');
+                chartsGroup.push(chartBottomInstance);
+            } else {
+                const ctxBottom = document.getElementById('chartBottom').getContext('2d');
+                chartBottomInstance = new Chart(ctxBottom, createChartConfig('bottom', bottomDatasets, 'Net GEX Vol', {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            min: minTime,
+                            max: maxTime,
+                            time: {
+                                parser: 'iso',
+                                unit: 'minute',
+                                stepSize: 30,
+                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
+                            },
+                            grid: { color: 'rgba(241, 245, 249, 1)', drawTicks: false },
+                            ticks: { font: { size: 8, family: 'monospace' }, color: '#64748b', maxRotation: 0, autoSkip: true, padding: 4 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(241, 245, 249, 1)' },
+                            ticks: { font: { size: 8 }, color: '#64748b', padding: 4 }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            filter: function(tooltipItem) {
+                                return tooltipItem.datasetIndex === 0;
+                            }
+                        }
+                    }
+                }));
+                chartsGroup.push(chartBottomInstance);
+            }
+
+            if (!eventsBound) {
+                bindGroupCrosshairEvents(chartTopInstance.canvas, chartTopInstance, chartsGroup);
+                bindGroupCrosshairEvents(chartCvdInstance.canvas, chartCvdInstance, chartsGroup);
+                bindGroupCrosshairEvents(chartDeltaCvdInstance.canvas, chartDeltaCvdInstance, chartsGroup);
+                bindGroupCrosshairEvents(chartBottomInstance.canvas, chartBottomInstance, chartsGroup);
+                eventsBound = true;
+            }
+        }
+
+        async function fetchAndRenderData(isSilent = false) {
+            if (!currentDayUrl) return;
+            if (!isSilent) showOverlay('Download dei dati da Google Sheets...');
+            updateStatus('Download...', 'loading');
+            try {
+                const response = await fetch(currentDayUrl + '&t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const csvText = await response.text();
+                const parsedData = csvToJSON(csvText);
+                if (parsedData.length === 0) throw new Error("Il file CSV è vuoto o non formattato correttamente.");
+                rawChartData = parsedData;
+                hideOverlay();
+                filterAndRenderData();
+                const nowStr = formatTimeItalian(new Date());
+                document.getElementById('last-update').textContent = `Ultimo controllo: ${nowStr}`;
+                updateStatus('Dati aggiornati');
+                resetCountdown();
+            } catch (error) {
+                console.error("Errore nel download:", error);
+                hideOverlay();
+                if (rawChartData.length === 0) showOverlay(`Errore: ${error.message}. Verifica link o pubblicazione.`, true);
+                updateStatus('Errore di aggiornamento', 'error');
+                resetCountdown();
+            }
+        }
+
+        // --- Gestione Master Index (elenco giorni) ---
+
+        function parseItalianDateLabel(label) {
+            if (!label) return null;
+            const parts = label.trim().split(/[\/\-]/);
+            if (parts.length !== 3) return null;
+            let [d, m, y] = parts.map(p => parseInt(p, 10));
+            if (!d || !m || !y) return null;
+            if (y < 100) y += 2000;
+            const dateObj = new Date(y, m - 1, d);
+            return isNaN(dateObj.getTime()) ? null : dateObj;
+        }
+
+        function parseMasterCSV(csvText) {
+            const lines = csvText.split(/\r?\n/);
+            if (lines.length === 0) return [];
+            const headers = parseCSVLine(lines[0], ',').map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
+            const labelIndex = headers.indexOf('label');
+            const urlIndex = headers.indexOf('url');
+            if (labelIndex === -1 || urlIndex === -1) {
+                throw new Error("Il Master Index non contiene le colonne 'label' e 'url'.");
+            }
+            const days = [];
+            const maxSensibleDate = new Date();
+            maxSensibleDate.setDate(maxSensibleDate.getDate() + 2); // margine di sicurezza (fuso orario)
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const row = parseCSVLine(lines[i], ',');
+                const label = row[labelIndex] ? row[labelIndex].trim() : '';
+                const url = row[urlIndex] ? row[urlIndex].trim() : '';
+                if (!label || !url || !url.startsWith('http')) continue; // salta giorni senza CSV pubblicato
+                const dateObj = parseItalianDateLabel(label);
+                if (dateObj && dateObj > maxSensibleDate) {
+                    console.warn(`Master Index: la data "${label}" sembra errata (nel futuro) e viene ignorata. Controlla il Google Sheet.`);
+                    continue;
+                }
+                days.push({ label, url, dateObj });
+            }
+            // Ordina dal più recente al più vecchio; le date non parsabili finiscono in fondo
+            days.sort((a, b) => {
+                if (a.dateObj && b.dateObj) return b.dateObj - a.dateObj;
+                if (a.dateObj) return -1;
+                if (b.dateObj) return 1;
+                return 0;
+            });
+            return days;
+        }
+
+        // --- Calendario giorno selezionato ---
+
+        let calViewYear = null;   // anno attualmente mostrato nel popup calendario
+        let calViewMonth = null;  // mese (0-11) attualmente mostrato nel popup calendario
+        let currentDayIndex = null;
+
+        const MESI_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+        const GIORNI_IT = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+
+        function sameDate(a, b) {
+            return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        }
+
+        function renderCalendar() {
+            document.getElementById('cal-month-label').textContent = `${MESI_IT[calViewMonth]} ${calViewYear}`;
+
+            const weekdaysEl = document.getElementById('cal-weekdays');
+            weekdaysEl.innerHTML = GIORNI_IT.map(g => `<div>${g}</div>`).join('');
+
+            const daysEl = document.getElementById('cal-days');
+            daysEl.innerHTML = '';
+
+            const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+            // Lunedì = 0 ... Domenica = 6
+            let leadingBlanks = (firstOfMonth.getDay() + 6) % 7;
+            const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+
+            for (let i = 0; i < leadingBlanks; i++) {
+                daysEl.appendChild(document.createElement('div'));
+            }
+
+            const selectedDate = (currentDayIndex !== null && availableDays[currentDayIndex]) ? availableDays[currentDayIndex].dateObj : null;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const cellDate = new Date(calViewYear, calViewMonth, d);
+                const matchIdx = availableDays.findIndex(day => sameDate(day.dateObj, cellDate));
+                const isAvailable = matchIdx !== -1;
+                const isSelected = sameDate(cellDate, selectedDate);
+
+                const cell = document.createElement('button');
+                cell.type = 'button';
+                cell.textContent = String(d);
+                cell.className = 'py-1 rounded-full text-xs transition-colors';
+
+                if (isSelected) {
+                    cell.classList.add('bg-indigo-600', 'text-white', 'font-bold');
+                } else if (isAvailable) {
+                    cell.classList.add('text-indigo-600', 'font-bold', 'hover:bg-indigo-100', 'cursor-pointer');
+                } else {
+                    cell.classList.add('text-slate-300', 'cursor-default');
+                    cell.disabled = true;
+                }
+
+                if (isAvailable) {
+                    cell.addEventListener('click', () => {
+                        selectDay(matchIdx, false);
+                        document.getElementById('calendar-popup').classList.add('hidden');
+                    });
+                }
+
+                daysEl.appendChild(cell);
+            }
+        }
+
+        function openCalendarOnSelectedDay() {
+            const selectedDate = (currentDayIndex !== null && availableDays[currentDayIndex]) ? availableDays[currentDayIndex].dateObj
+                : (availableDays[0] ? availableDays[0].dateObj : null);
+            const ref = selectedDate || new Date();
+            calViewYear = ref.getFullYear();
+            calViewMonth = ref.getMonth();
+            renderCalendar();
+        }
+
+        function selectDay(idx, isSilent = false) {
+            const day = availableDays[idx];
+            if (!day) return;
+            currentDayIndex = idx;
+            currentDayUrl = day.url;
+            currentDayLabel = day.label;
+            document.getElementById('day-selector-label').textContent = day.label;
+            rawChartData = [];
+            clearInterval(updateTimer);
+            clearInterval(countdownTimer);
+            fetchAndRenderData(isSilent);
+            updateTimer = setInterval(() => { fetchAndRenderData(true); }, UPDATE_INTERVAL);
+        }
+
+        async function fetchMasterAndInit() {
+            if (MASTER_CSV_URL.startsWith('INSERISCI_QUI')) {
+                document.getElementById('ndx-todo-banner').classList.remove('hidden');
+                hideOverlay();
+                showOverlay('Master Index NDX non ancora collegato. Vedi il messaggio in alto.', true);
+                updateStatus('In attesa del link master', 'error');
+                return;
+            }
+            showOverlay('Caricamento elenco giorni disponibili...');
+            updateStatus('Caricamento giorni...', 'loading');
+            try {
+                const response = await fetch(MASTER_CSV_URL + '&t=' + new Date().getTime());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const csvText = await response.text();
+                availableDays = parseMasterCSV(csvText);
+                if (availableDays.length === 0) throw new Error("Nessun giorno con CSV pubblicato trovato nel Master Index.");
+                openCalendarOnSelectedDay();
+                selectDay(0, false); // Seleziona di default il giorno più recente
+            } catch (error) {
+                console.error("Errore nel download del Master Index:", error);
+                hideOverlay();
+                showOverlay(`Errore Master Index: ${error.message}`, true);
+                updateStatus('Errore Master Index', 'error');
+            }
+        }
+
+        function resetCountdown() {
+            if (countdownTimer) clearInterval(countdownTimer);
+            countdownValue = UPDATE_INTERVAL / 1000;
+            document.getElementById('countdown').textContent = `${countdownValue}s`;
+            
+            countdownTimer = setInterval(() => {
+                countdownValue--;
+                document.getElementById('countdown').textContent = `${countdownValue}s`;
+                if (countdownValue <= 0) clearInterval(countdownTimer);
+            }, 1000);
+        }
+
+        function startAutoUpdate() {
+            fetchAndRenderData();
+            updateTimer = setInterval(() => { fetchAndRenderData(true); }, UPDATE_INTERVAL);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyPanelsVisibility(); // Allinea la visibilità iniziale dei pannelli coi default false
+            fetchMasterAndInit();
+
+            document.getElementById('day-selector-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const popup = document.getElementById('calendar-popup');
+                const wasHidden = popup.classList.contains('hidden');
+                popup.classList.toggle('hidden');
+                if (wasHidden) openCalendarOnSelectedDay();
+            });
+
+            document.getElementById('calendar-popup').addEventListener('click', (e) => e.stopPropagation());
+
+            document.addEventListener('click', () => {
+                document.getElementById('calendar-popup').classList.add('hidden');
+            });
+
+            document.getElementById('cal-prev').addEventListener('click', () => {
+                calViewMonth--;
+                if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+                renderCalendar();
+            });
+
+            document.getElementById('cal-next').addEventListener('click', () => {
+                calViewMonth++;
+                if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+                renderCalendar();
+            });
+
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                clearInterval(updateTimer);
+                clearInterval(countdownTimer);
+                fetchAndRenderData(false);
+                updateTimer = setInterval(() => { fetchAndRenderData(true); }, UPDATE_INTERVAL);
+            });
+            
+            window.addEventListener('resize', () => {
+                if (chartTopInstance) chartTopInstance.resize();
+                if (chartCvdInstance) chartCvdInstance.resize();
+                if (chartDeltaCvdInstance) chartDeltaCvdInstance.resize();
+                if (chartBottomInstance) chartBottomInstance.resize();
+            });
+        });
+    </script>
+</body>
+</html>

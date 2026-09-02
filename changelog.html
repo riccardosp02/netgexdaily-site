@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Note giornaliere — netgexdaily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F4F0; --bg-alt:#EAEBE4; --ink:#15181A; --ink-soft:#565C57; --line:#D6D8CF;
+    --teal:#0F6E56; --rust:#B3441F;
+    --serif:'Newsreader',Georgia,serif;
+    --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:16px;}
+  a{color:inherit;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 28px;}
+  header.site{border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:10;}
+  .navrow{max-width:920px; margin:0 auto; padding:18px 28px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{font-family:var(--mono); font-size:14px; font-weight:500; text-decoration:none; display:flex; align-items:center; gap:8px;}
+  .brand .dot{width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block;}
+  nav.links{display:flex; gap:26px; font-size:14px;}
+  nav.links a{text-decoration:none; color:var(--ink-soft); border-bottom:1px solid transparent; padding-bottom:2px;}
+  nav.links a:hover{color:var(--ink); border-bottom-color:var(--ink);}
+  nav.links a.active{color:var(--ink); border-bottom-color:var(--teal);}
+
+  .pagehead{padding:64px 0 30px;}
+  .kicker{font-family:var(--mono); font-size:13px; color:var(--ink-soft); margin-bottom:18px;}
+  h1{font-family:var(--serif); font-weight:500; font-size:36px; margin:0 0 16px;}
+  .pagehead p{color:var(--ink-soft); font-size:16px; max-width:56ch; margin:0;}
+
+  .list{border-top:1px solid var(--line); padding-bottom:70px;}
+  .entry{display:grid; grid-template-columns:120px 1fr; gap:20px; padding:20px 0; border-bottom:1px solid var(--line);}
+  .entry .date{font-family:var(--mono); font-size:13px; color:var(--teal); padding-top:2px;}
+  .entry p{margin:0; font-size:15px; color:var(--ink);}
+
+  .state{font-family:var(--mono); font-size:13px; color:var(--ink-soft); padding:40px 0;}
+  .state.error{color:var(--rust);}
+
+  @media (max-width:600px){
+    h1{font-size:28px;}
+    .entry{grid-template-columns:1fr; gap:4px;}
+    nav.links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="navrow">
+    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <nav class="links">
+      <a href="dashboard-spx.html">Dashboard SPX</a>
+      <a href="dashboard-ndx.html">Dashboard NDX</a>
+      <a href="pipeline.html">Come funziona</a>
+      <a href="changelog.html" class="active">Note giornaliere</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <div class="kicker">osservazioni giorno per giorno</div>
+    <h1>Note dal master index</h1>
+    <p>Annotazioni prese nei giorni in cui è successo qualcosa degno di nota: rotture di livelli, giornate FOMC, comportamenti anomali del net GEX. Lette in diretta dal Google Sheet master.</p>
+  </div>
+
+  <div class="list" id="list">
+    <div class="state" id="state">Caricamento note dal master index...</div>
+  </div>
+</main>
+
+<script>
+  const MASTER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcBhHiCZ7gurJNv6p9xbTkLHzrObPz-8D3xKUE3dYXt8t54btmzL-VfYxwbMwplGGRnG9SvWy8gCk0/pub?gid=0&single=true&output=csv';
+
+  function parseCSVLine(text, delimiter = ',') {
+    let p = '', c = '', r = [];
+    let q = false;
+    for (let i = 0; i < text.length; i++) {
+      c = text[i];
+      if (c === '"') { q = !q; }
+      else if (c === delimiter && !q) { r.push(p.trim()); p = ''; }
+      else { p += c; }
+    }
+    r.push(p.trim());
+    return r;
+  }
+
+  function parseItalianDateLabel(label) {
+    if (!label) return null;
+    const parts = label.trim().split(/[\/\-]/);
+    if (parts.length !== 3) return null;
+    let [d, m, y] = parts.map(p => parseInt(p, 10));
+    if (!d || !m || !y) return null;
+    if (y < 100) y += 2000;
+    const dateObj = new Date(y, m - 1, d);
+    return isNaN(dateObj.getTime()) ? null : dateObj;
+  }
+
+  async function loadNotes() {
+    const stateEl = document.getElementById('state');
+    const listEl = document.getElementById('list');
+    try {
+      const response = await fetch(MASTER_CSV_URL + '&t=' + new Date().getTime());
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const csvText = await response.text();
+      const lines = csvText.split(/\r?\n/);
+      const headers = parseCSVLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
+      const labelIdx = headers.indexOf('label');
+      const noteIdx = headers.indexOf('note');
+      if (labelIdx === -1 || noteIdx === -1) throw new Error("Colonne 'label' o 'note' non trovate nel master index.");
+
+      const maxSensibleDate = new Date();
+      maxSensibleDate.setDate(maxSensibleDate.getDate() + 2);
+
+      const entries = [];
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i] || !lines[i].trim()) continue;
+        const row = parseCSVLine(lines[i]);
+        const label = row[labelIdx] ? row[labelIdx].trim() : '';
+        const note = row[noteIdx] ? row[noteIdx].trim() : '';
+        if (!label || !note) continue;
+        const dateObj = parseItalianDateLabel(label);
+        if (dateObj && dateObj > maxSensibleDate) continue;
+        entries.push({ label, note, dateObj });
+      }
+      entries.sort((a, b) => {
+        if (a.dateObj && b.dateObj) return b.dateObj - a.dateObj;
+        if (a.dateObj) return -1;
+        if (b.dateObj) return 1;
+        return 0;
+      });
+
+      stateEl.remove();
+      if (entries.length === 0) {
+        listEl.innerHTML = '<div class="state">Nessuna nota registrata finora.</div>';
+        return;
+      }
+      listEl.innerHTML = entries.map(e =>
+        `<div class="entry"><span class="date">${e.label}</span><p>${e.note.replace(/</g,'&lt;')}</p></div>`
+      ).join('');
+    } catch (error) {
+      console.error(error);
+      stateEl.textContent = 'Errore nel caricamento delle note: ' + error.message;
+      stateEl.classList.add('error');
+    }
+  }
+
+  loadNotes();
+</script>
+
+</body>
+</html>
