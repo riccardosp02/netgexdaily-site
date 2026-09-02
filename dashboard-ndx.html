@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard NDX — netgexdaily</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tailwind CSS per uno stile moderno e pulito -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js per la visualizzazione del grafico -->
@@ -13,6 +13,17 @@
     <!-- Date Adapter per gestire correttamente l'asse temporale in Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
+        :root {
+            --bg: #FAFAF8;
+            --bg-alt: #F2F3EF;
+            --ink: #23272A;
+            --ink-soft: #6B716B;
+            --line: #E4E6DF;
+            --teal: #1D9E75;
+            --teal-soft: #E1F5EE;
+            --rust: #E0703F;
+            --rust-soft: #FBEBE1;
+        }
         html, body {
             height: 100%;
             margin: 0;
@@ -20,8 +31,23 @@
             overflow: hidden; /* Evita doppie barre di scorrimento su Google Sites */
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg) !important;
         }
+        #chart-title { font-family: 'Newsreader', Georgia, serif !important; font-weight: 600 !important; color: var(--ink) !important; }
+        /* Sostituzione dell'accent Tailwind (indigo) con il teal del brand */
+        .peer-checked\:bg-indigo-600:where(.peer:checked ~ *) { background-color: var(--teal) !important; }
+        .text-indigo-600 { color: var(--teal) !important; }
+        .hover\:text-indigo-600:hover { color: var(--teal) !important; }
+        .bg-indigo-600 { background-color: var(--teal) !important; }
+        .hover\:bg-indigo-100:hover { background-color: var(--teal-soft) !important; }
+        .focus\:ring-indigo-400:focus { --tw-ring-color: var(--teal) !important; }
+        .text-emerald-600 { color: var(--teal) !important; }
+        .bg-emerald-50 { background-color: var(--teal-soft) !important; }
+        .bg-emerald-500 { background-color: var(--teal) !important; }
+        .text-rose-600 { color: #B5502C !important; }
+        .bg-rose-50 { background-color: var(--rust-soft) !important; }
+        .bg-rose-500 { background-color: var(--rust) !important; }
         .charts-wrapper {
             display: flex;
             flex-direction: column;
@@ -55,11 +81,11 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 p-2 flex flex-col justify-between h-full">
+<body class="text-slate-800 p-2 flex flex-col justify-between h-full">
 
     <div class="w-full flex items-center justify-between px-1 pb-2 mb-1 shrink-0">
         <a href="index.html" class="flex items-center gap-2 text-[13px] font-medium text-slate-800" style="font-family:'IBM Plex Mono',monospace;">
-            <span class="inline-block w-[7px] h-[7px] rounded-full" style="background:#0F6E56"></span>netgexdaily
+            <span class="inline-block w-[7px] h-[7px] rounded-full" style="background:#1D9E75"></span>netgexdaily
         </a>
         <div class="flex items-center gap-5 text-xs">
             <a href="dashboard-spx.html" class="text-slate-500 hover:text-slate-800">SPX</a>
@@ -69,11 +95,11 @@
         </div>
     </div>
 
-    <div id="ndx-todo-banner" class="w-full shrink-0 mb-1 px-3 py-2 rounded-lg text-xs font-medium hidden" style="background:#F5E1D6; color:#7A2E13;">
+    <div id="ndx-todo-banner" class="w-full shrink-0 mb-1 px-3 py-2 rounded-lg text-xs font-medium hidden" style="background:#FBEBE1; color:#7A2E13;">
         Il Master Index NDX non è ancora collegato: sostituisci MASTER_CSV_URL nel codice con il link pubblicato del tuo foglio master NDX.
     </div>
 
-    <div class="w-full flex-1 min-h-0 bg-white rounded-xl shadow-md p-3 md:p-5 flex flex-col justify-between overflow-hidden">
+    <div class="w-full flex-1 min-h-0 bg-white rounded-lg border border-slate-100 shadow-sm p-3 md:p-5 flex flex-col justify-between overflow-hidden">
         <!-- Intestazione del widget -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-2 mb-2 gap-2 shrink-0">
             <div>
@@ -138,9 +164,9 @@
                     
                     <!-- Contenuto del Dropdown -->
                     <div id="panels-menu-dropdown" class="origin-top-right absolute right-0 mt-1.5 w-48 rounded-xl shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-30 p-1.5 space-y-0.5">
-                        <!-- Interruttore Superiore -->
+                        <!-- Interruttore Spot + Main gamma -->
                         <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                            <span class="text-xs font-medium text-slate-700">Superiore</span>
+                            <span class="text-xs font-medium text-slate-700">Spot + Main gamma</span>
                             <div class="relative inline-flex items-center">
                                 <input type="checkbox" id="panel-top-checkbox" class="sr-only peer" checked>
                                 <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -154,17 +180,9 @@
                                 <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
                             </div>
                         </label>
-                        <!-- Interruttore Delta CVD (Disattivato di base) -->
+                        <!-- Interruttore Net Gamma Vol -->
                         <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                            <span class="text-xs font-medium text-slate-700">Delta CVD</span>
-                            <div class="relative inline-flex items-center">
-                                <input type="checkbox" id="panel-delta-cvd-checkbox" class="sr-only peer">
-                                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </div>
-                        </label>
-                        <!-- Interruttore Inferiore -->
-                        <label class="flex items-center justify-between px-2 py-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                            <span class="text-xs font-medium text-slate-700">Inferiore</span>
+                            <span class="text-xs font-medium text-slate-700">Net Gamma Vol</span>
                             <div class="relative inline-flex items-center">
                                 <input type="checkbox" id="panel-bottom-checkbox" class="sr-only peer" checked>
                                 <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -187,7 +205,7 @@
 
         <!-- Sezione Grafici Interattiva -->
         <div class="charts-wrapper flex-grow">
-            <!-- Pannello Superiore: MPOS Vol, MNEG Vol, SPOT & ZERO GAMMA -->
+            <!-- Pannello Spot + Main gamma: MPOS Vol, MNEG Vol, SPOT & ZERO GAMMA -->
             <div id="panel-top" class="chart-panel">
                 <canvas id="chartTop"></canvas>
             </div>
@@ -197,12 +215,7 @@
                 <canvas id="chartCvd"></canvas>
             </div>
 
-            <!-- Nuovo Pannello Intermedio: Delta CVD -->
-            <div id="panel-delta-cvd" class="chart-panel">
-                <canvas id="chartDeltaCvd"></canvas>
-            </div>
-            
-            <!-- Pannello Inferiore: Net GEX Vol -->
+            <!-- Pannello Net Gamma Vol -->
             <div id="panel-bottom" class="chart-panel">
                 <canvas id="chartBottom"></canvas>
             </div>
@@ -234,8 +247,8 @@
     </div>
 
     <script>
-        // URL del "Master Index" NDX: sostituisci con il link  pubblicato del tuo foglio master NDX
-        const MASTER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcBhHiCZ7gurJNv6p9xbTkLHzrObPz-8D3xKUE3dYXt8t54btmzL-VfYxwbMwplGGRnG9SvWy8gCk0/pub?gid=924465710&single=true&output=csv';
+        // URL del "Master Index" NDX: sostituisci con il link CSV pubblicato del tuo foglio master NDX
+        const MASTER_CSV_URL = 'INSERISCI_QUI_IL_LINK_CSV_DEL_MASTER_INDEX_NDX';
         const UPDATE_INTERVAL = 60000; // 60 secondi
 
         let availableDays = [];      // [{ label, url, dateObj }], ordinati dal più recente al più vecchio
@@ -244,7 +257,6 @@
 
         let chartTopInstance = null;
         let chartCvdInstance = null;
-        let chartDeltaCvdInstance = null;
         let chartBottomInstance = null;
         let countdownValue = UPDATE_INTERVAL / 1000;
         let countdownTimer = null;
@@ -259,14 +271,12 @@
         
         let showPanelTop = true;
         let showPanelCvd = false;       // Disattivato di base
-        let showPanelDeltaCvd = false; // Disattivato di base
         let showPanelBottom = true;
         let rawChartData = [];
         let activeFilteredData = [];
 
         const panelTop = document.getElementById('panel-top');
         const panelCvd = document.getElementById('panel-cvd');
-        const panelDeltaCvd = document.getElementById('panel-delta-cvd');
         const panelBottom = document.getElementById('panel-bottom');
         const tooltipToggle = document.getElementById('tooltip-toggle');
         const timeFilterToggle = document.getElementById('time-filter-toggle');
@@ -277,7 +287,6 @@
         const panelsMenuArrow = document.getElementById('panels-menu-arrow');
         const panelTopCheckbox = document.getElementById('panel-top-checkbox');
         const panelCvdCheckbox = document.getElementById('panel-cvd-checkbox');
-        const panelDeltaCvdCheckbox = document.getElementById('panel-delta-cvd-checkbox');
         const panelBottomCheckbox = document.getElementById('panel-bottom-checkbox');
 
         panelsMenuBtn.addEventListener('click', (e) => {
@@ -312,12 +321,6 @@
                 panelCvd.classList.add('hidden');
             }
 
-            if (showPanelDeltaCvd) {
-                panelDeltaCvd.classList.remove('hidden');
-            } else {
-                panelDeltaCvd.classList.add('hidden');
-            }
-
             if (showPanelBottom) {
                 panelBottom.classList.remove('hidden');
             } else {
@@ -327,12 +330,10 @@
             const visiblePanels = [];
             if (showPanelTop) visiblePanels.push(panelTop);
             if (showPanelCvd) visiblePanels.push(panelCvd);
-            if (showPanelDeltaCvd) visiblePanels.push(panelDeltaCvd);
             if (showPanelBottom) visiblePanels.push(panelBottom);
 
             panelTop.classList.remove('border-t', 'pt-1');
             panelCvd.classList.remove('border-t', 'pt-1');
-            panelDeltaCvd.classList.remove('border-t', 'pt-1');
             panelBottom.classList.remove('border-t', 'pt-1');
 
             for (let i = 1; i < visiblePanels.length; i++) {
@@ -342,7 +343,6 @@
             setTimeout(() => {
                 if (chartTopInstance) chartTopInstance.resize();
                 if (chartCvdInstance) chartCvdInstance.resize();
-                if (chartDeltaCvdInstance) chartDeltaCvdInstance.resize();
                 if (chartBottomInstance) chartBottomInstance.resize();
             }, 50);
         }
@@ -359,10 +359,6 @@
             showEma9State = e.target.checked;
             filterAndRenderData();
         });
-        panelDeltaCvdCheckbox.addEventListener('change', (e) => {
-            showPanelDeltaCvd = e.target.checked;
-            applyPanelsVisibility();
-        });
         panelBottomCheckbox.addEventListener('change', (e) => {
             showPanelBottom = e.target.checked;
             applyPanelsVisibility();
@@ -377,7 +373,7 @@
         });
 
         function updateTooltipVisibility() {
-            [chartTopInstance, chartCvdInstance, chartDeltaCvdInstance, chartBottomInstance].forEach(chart => {
+            [chartTopInstance, chartCvdInstance, chartBottomInstance].forEach(chart => {
                 if (chart) {
                     chart.options.plugins.tooltip.enabled = showTooltip;
                     chart.update('none');
@@ -651,7 +647,6 @@
             const gexDateIndex = headers.indexOf('gex_datetime');
             const zeroGammaIndex = headers.indexOf('zero_gamma');
             const cvdIndex = headers.findIndex(h => h.toLowerCase() === 'cvd' || h.toLowerCase() === 'cvd_vol' || h.toLowerCase() === 'cvd_val');
-            const deltaCvdIndex = headers.findIndex(h => h.toLowerCase() === 'delta cvd' || h.toLowerCase() === 'delta_cvd' || h.toLowerCase() === 'deltacvd' || h.toLowerCase() === 'delta_gex_vol' || h.toLowerCase() === 'delta_cvd_vol');
             // Rilevamento banda_superiore / banda_inferiore (expected move)
             const bandaSuperioreIndex = headers.findIndex(h => h.toLowerCase() === 'banda_superiore' || h.toLowerCase() === 'bandasuperiore' || h.toLowerCase() === 'sd1_plus' || h.toLowerCase() === 'sd1_pos' || h.toLowerCase() === '+1sd');
             const bandaInferioreIndex = headers.findIndex(h => h.toLowerCase() === 'banda_inferiore' || h.toLowerCase() === 'bandainferiore' || h.toLowerCase() === 'sd1_minus' || h.toLowerCase() === 'sd1_neg' || h.toLowerCase() === '-1sd');
@@ -678,11 +673,10 @@
                 const parsedSpot = (spotIndex !== -1) ? safeParseFloat(currentline[spotIndex]) : null;
                 const parsedZeroGamma = (zeroGammaIndex !== -1) ? safeParseFloat(currentline[zeroGammaIndex]) : null;
                 const parsedCvd = (cvdIndex !== -1) ? safeParseFloat(currentline[cvdIndex]) : null;
-                const parsedDeltaCvd = (deltaCvdIndex !== -1) ? safeParseFloat(currentline[deltaCvdIndex]) : null;
                 const parsedBandaSuperiore = (bandaSuperioreIndex !== -1) ? safeParseFloat(currentline[bandaSuperioreIndex]) : null;
                 const parsedBandaInferiore = (bandaInferioreIndex !== -1) ? safeParseFloat(currentline[bandaInferioreIndex]) : null;
                 if (parsedNetGex !== null) {
-                    result.push({ time: parsedDate, mpos: parsedMpos, mneg: parsedMneg, spot: parsedSpot, zeroGamma: parsedZeroGamma, netGex: parsedNetGex, cvd: parsedCvd, deltaCvd: parsedDeltaCvd, bandaSuperiore: parsedBandaSuperiore, bandaInferiore: parsedBandaInferiore });
+                    result.push({ time: parsedDate, mpos: parsedMpos, mneg: parsedMneg, spot: parsedSpot, zeroGamma: parsedZeroGamma, netGex: parsedNetGex, cvd: parsedCvd, bandaSuperiore: parsedBandaSuperiore, bandaInferiore: parsedBandaInferiore });
                 }
             }
             return result.sort((a, b) => a.time - b.time);
@@ -882,7 +876,6 @@
             const zeroGammaData = data.map(d => ({ x: d.time, y: d.zeroGamma }));
             const netGexData = data.map(d => ({ x: d.time, y: d.netGex }));
             const cvmData = data.map(d => ({ x: d.time, y: d.cvd }));
-            const deltaCvdData = data.map(d => ({ x: d.time, y: d.deltaCvd }));
             const bandaSuperioreData = data.map(d => ({ x: d.time, y: d.bandaSuperiore }));
             const bandaInferioreData = data.map(d => ({ x: d.time, y: d.bandaInferiore }));
 
@@ -892,46 +885,46 @@
 
             const chartsGroup = [];
 
-            // 1. Pannello Superiore (Unificato su un'unica scala Y per allineare graficamente i punti)
+            // 1. Pannello Spot + Main gamma (Unificato su un'unica scala Y per allineare graficamente i punti)
             const topDatasets = [
                 { 
                     label: 'MPOS Vol (B)', 
                     data: mposData, 
-                    borderColor: '#10b981', 
-                    backgroundColor: '#10b981', 
+                    borderColor: '#1D9E75', 
+                    backgroundColor: '#1D9E75', 
                     borderWidth: 1.5, 
                     pointRadius: 2.5, 
-                    pointBackgroundColor: '#10b981',
+                    pointBackgroundColor: '#1D9E75',
                     pointHoverRadius: 4.5 
                 },
                 { 
                     label: 'MNEG Vol (D)', 
                     data: mnegData, 
-                    borderColor: '#ef4444', 
-                    backgroundColor: '#ef4444', 
+                    borderColor: '#E0703F', 
+                    backgroundColor: '#E0703F', 
                     borderWidth: 1.5, 
                     pointRadius: 2.5, 
-                    pointBackgroundColor: '#ef4444',
+                    pointBackgroundColor: '#E0703F',
                     pointHoverRadius: 4.5 
                 },
                 { 
                     label: 'SPOT Price (J)', 
                     data: spotData, 
-                    borderColor: '#3b82f6', 
-                    backgroundColor: '#3b82f6', 
+                    borderColor: '#3B82C4', 
+                    backgroundColor: '#3B82C4', 
                     borderWidth: 2, 
                     pointRadius: 3, 
-                    pointBackgroundColor: '#3b82f6',
+                    pointBackgroundColor: '#3B82C4',
                     pointHoverRadius: 5 
                 },
                 { 
                     label: 'Zero Gamma (A)', 
                     data: zeroGammaData, 
-                    borderColor: '#f59e0b', 
-                    backgroundColor: '#f59e0b', 
+                    borderColor: '#D9A441', 
+                    backgroundColor: '#D9A441', 
                     borderWidth: 1.5, 
                     pointRadius: 2.5, 
-                    pointBackgroundColor: '#f59e0b',
+                    pointBackgroundColor: '#D9A441',
                     pointHoverRadius: 4.5 
                 }
             ];
@@ -939,7 +932,7 @@
             // Expected move: banda superiore/inferiore, disegnate solo se presenti nel CSV del giorno
             if (bandaSuperioreData.some(d => d.y !== null)) {
                 topDatasets.push({
-                    label: 'Banda Superiore',
+                    label: 'Expected Move Sup',
                     data: bandaSuperioreData,
                     borderColor: '#8b5cf6',
                     borderWidth: 1.5,
@@ -950,7 +943,7 @@
             }
             if (bandaInferioreData.some(d => d.y !== null)) {
                 topDatasets.push({
-                    label: 'Banda Inferiore',
+                    label: 'Expected Move Inf',
                     data: bandaInferioreData,
                     borderColor: '#8b5cf6',
                     borderWidth: 1.5,
@@ -966,8 +959,8 @@
                 topDatasets.push({
                     label: 'EMA 9 (Spot)',
                     data: ema9Data,
-                    borderColor: '#a855f7',
-                    backgroundColor: '#a855f7',
+                    borderColor: '#9B7FC4',
+                    backgroundColor: '#9B7FC4',
                     borderWidth: 1.8,
                     borderDash: [2, 3], 
                     borderCapStyle: 'round',
@@ -984,7 +977,7 @@
                 chartsGroup.push(chartTopInstance);
             } else {
                 const ctxTop = document.getElementById('chartTop').getContext('2d');
-                chartTopInstance = new Chart(ctxTop, createChartConfig('top', topDatasets, 'Pannello Superiore', {
+                chartTopInstance = new Chart(ctxTop, createChartConfig('top', topDatasets, 'Spot + Main gamma', {
                     scales: {
                         x: { 
                             type: 'time', 
@@ -1014,12 +1007,12 @@
             const cvdDatasets = [{ 
                 label: 'CVD (Cumulative Volume Delta)', 
                 data: cvmData, 
-                borderColor: '#06b6d4', 
-                backgroundColor: 'rgba(6, 182, 212, 0.05)', 
+                borderColor: '#5B90A0', 
+                backgroundColor: 'rgba(91, 144, 160, 0.08)', 
                 borderWidth: 1.5, 
                 fill: true, 
                 pointRadius: 2, 
-                pointBackgroundColor: '#06b6d4',
+                pointBackgroundColor: '#5B90A0',
                 pointHoverRadius: 4 
             }];
             if (chartCvdInstance) {
@@ -1054,51 +1047,7 @@
                 chartsGroup.push(chartCvdInstance);
             }
 
-            // 3. Pannello Delta CVD
-            const deltaCvdDatasets = [{ 
-                label: 'Delta CVD (Variazione Istantanea)', 
-                data: deltaCvdData, 
-                borderColor: '#db2777', 
-                backgroundColor: 'rgba(219, 39, 119, 0.05)', 
-                borderWidth: 1.5, 
-                fill: true, 
-                pointRadius: 2.5, 
-                pointBackgroundColor: '#db2777',
-                pointHoverRadius: 4.5 
-            }];
-            if (chartDeltaCvdInstance) {
-                chartDeltaCvdInstance.options.scales.x.min = minTime;
-                chartDeltaCvdInstance.options.scales.x.max = maxTime;
-                chartDeltaCvdInstance.data.datasets = deltaCvdDatasets;
-                chartDeltaCvdInstance.update('none');
-                chartsGroup.push(chartDeltaCvdInstance);
-            } else {
-                const ctxDeltaCvd = document.getElementById('chartDeltaCvd').getContext('2d');
-                chartDeltaCvdInstance = new Chart(ctxDeltaCvd, createChartConfig('deltaCvd', deltaCvdDatasets, 'Delta CVD', {
-                    scales: {
-                        x: {
-                            type: 'time',
-                            min: minTime,
-                            max: maxTime,
-                            time: {
-                                parser: 'iso',
-                                unit: 'minute',
-                                stepSize: 30,
-                                displayFormats: { minute: 'HH:mm', hour: 'HH:mm' }
-                            },
-                            grid: { color: 'rgba(241, 245, 249, 1)', drawTicks: false },
-                            ticks: { font: { size: 8, family: 'monospace' }, color: '#64748b', maxRotation: 0, autoSkip: true, padding: 4 }
-                        },
-                        y: {
-                            grid: { color: 'rgba(241, 245, 249, 1)' },
-                            ticks: { font: { size: 8 }, color: '#64748b', padding: 4 }
-                        }
-                    }
-                }));
-                chartsGroup.push(chartDeltaCvdInstance);
-            }
-
-            // 4. Pannello Inferiore (Net GEX Vol con linee di soglia e colorazione dinamica)
+            // 3. Pannello Net Gamma Vol (linee di soglia e colorazione dinamica)
             const bottomDatasets = [
                 {
                     label: 'Net GEX Vol',
@@ -1106,7 +1055,7 @@
                     borderColor: function(context) {
                         const chart = context.chart;
                         const {ctx, chartArea} = chart;
-                        if (!chartArea) return '#6366f1';
+                        if (!chartArea) return '#6B716B';
                         const yAxis = chart.scales.y;
                         const yZero = yAxis.getPixelForValue(0);
                         const top = chartArea.top;
@@ -1120,16 +1069,16 @@
                         }
 
                         const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-                        gradient.addColorStop(0, 'rgb(16, 185, 129)'); 
-                        gradient.addColorStop(zeroRatio, 'rgb(16, 185, 129)');
-                        gradient.addColorStop(zeroRatio, 'rgb(244, 63, 94)'); 
-                        gradient.addColorStop(1, 'rgb(244, 63, 94)');
+                        gradient.addColorStop(0, 'rgb(29, 158, 117)'); 
+                        gradient.addColorStop(zeroRatio, 'rgb(29, 158, 117)');
+                        gradient.addColorStop(zeroRatio, 'rgb(224, 112, 63)'); 
+                        gradient.addColorStop(1, 'rgb(224, 112, 63)');
                         return gradient;
                     },
                     backgroundColor: function(context) {
                         const chart = context.chart;
                         const {ctx, chartArea} = chart;
-                        if (!chartArea) return 'rgba(99, 102, 241, 0.05)';
+                        if (!chartArea) return 'rgba(107, 113, 107, 0.05)';
                         const yAxis = chart.scales.y;
                         const yZero = yAxis.getPixelForValue(0);
                         const top = chartArea.top;
@@ -1143,10 +1092,10 @@
                         }
 
                         const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-                        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)'); 
-                        gradient.addColorStop(zeroRatio, 'rgba(16, 185, 129, 0.01)');
-                        gradient.addColorStop(zeroRatio, 'rgba(244, 63, 94, 0.01)');
-                        gradient.addColorStop(1, 'rgba(244, 63, 94, 0.25)'); 
+                        gradient.addColorStop(0, 'rgba(29, 158, 117, 0.18)'); 
+                        gradient.addColorStop(zeroRatio, 'rgba(29, 158, 117, 0.01)');
+                        gradient.addColorStop(zeroRatio, 'rgba(224, 112, 63, 0.01)');
+                        gradient.addColorStop(1, 'rgba(224, 112, 63, 0.18)'); 
                         return gradient;
                     },
                     borderWidth: 2,
@@ -1155,14 +1104,14 @@
                     pointBackgroundColor: function(context) {
                         const index = context.dataIndex;
                         const datum = context.dataset.data[index];
-                        if (!datum || datum.y === null) return '#6366f1';
-                        return datum.y >= 0 ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+                        if (!datum || datum.y === null) return '#6B716B';
+                        return datum.y >= 0 ? 'rgb(29, 158, 117)' : 'rgb(224, 112, 63)';
                     },
                     pointBorderColor: function(context) {
                         const index = context.dataIndex;
                         const datum = context.dataset.data[index];
-                        if (!datum || datum.y === null) return '#6366f1';
-                        return datum.y >= 0 ? 'rgb(16, 185, 129)' : 'rgb(244, 63, 94)';
+                        if (!datum || datum.y === null) return '#6B716B';
+                        return datum.y >= 0 ? 'rgb(29, 158, 117)' : 'rgb(224, 112, 63)';
                     },
                     pointHoverRadius: 4.5,
                     spanGaps: false
@@ -1204,7 +1153,7 @@
                 chartsGroup.push(chartBottomInstance);
             } else {
                 const ctxBottom = document.getElementById('chartBottom').getContext('2d');
-                chartBottomInstance = new Chart(ctxBottom, createChartConfig('bottom', bottomDatasets, 'Net GEX Vol', {
+                chartBottomInstance = new Chart(ctxBottom, createChartConfig('bottom', bottomDatasets, 'Net Gamma Vol', {
                     scales: {
                         x: {
                             type: 'time',
@@ -1238,7 +1187,6 @@
             if (!eventsBound) {
                 bindGroupCrosshairEvents(chartTopInstance.canvas, chartTopInstance, chartsGroup);
                 bindGroupCrosshairEvents(chartCvdInstance.canvas, chartCvdInstance, chartsGroup);
-                bindGroupCrosshairEvents(chartDeltaCvdInstance.canvas, chartDeltaCvdInstance, chartsGroup);
                 bindGroupCrosshairEvents(chartBottomInstance.canvas, chartBottomInstance, chartsGroup);
                 eventsBound = true;
             }
@@ -1489,7 +1437,6 @@
             window.addEventListener('resize', () => {
                 if (chartTopInstance) chartTopInstance.resize();
                 if (chartCvdInstance) chartCvdInstance.resize();
-                if (chartDeltaCvdInstance) chartDeltaCvdInstance.resize();
                 if (chartBottomInstance) chartBottomInstance.resize();
             });
         });
