@@ -235,7 +235,7 @@
 
     <script>
         // URL del "Master Index" NDX: sostituisci con il link CSV pubblicato del tuo foglio master NDX
-        const MASTER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcBhHiCZ7gurJNv6p9xbTkLHzrObPz-8D3xKUE3dYXt8t54btmzL-VfYxwbMwplGGRnG9SvWy8gCk0/pub?gid=924465710&single=true&output=csv';
+        const MASTER_CSV_URL = 'INSERISCI_QUI_IL_LINK_CSV_DEL_MASTER_INDEX_NDX';
         const UPDATE_INTERVAL = 60000; // 60 secondi
 
         let availableDays = [];      // [{ label, url, dateObj }], ordinati dal più recente al più vecchio
@@ -652,6 +652,9 @@
             const zeroGammaIndex = headers.indexOf('zero_gamma');
             const cvdIndex = headers.findIndex(h => h.toLowerCase() === 'cvd' || h.toLowerCase() === 'cvd_vol' || h.toLowerCase() === 'cvd_val');
             const deltaCvdIndex = headers.findIndex(h => h.toLowerCase() === 'delta cvd' || h.toLowerCase() === 'delta_cvd' || h.toLowerCase() === 'deltacvd' || h.toLowerCase() === 'delta_gex_vol' || h.toLowerCase() === 'delta_cvd_vol');
+            // Rilevamento banda_superiore / banda_inferiore (expected move)
+            const bandaSuperioreIndex = headers.findIndex(h => h.toLowerCase() === 'banda_superiore' || h.toLowerCase() === 'bandasuperiore' || h.toLowerCase() === 'sd1_plus' || h.toLowerCase() === 'sd1_pos' || h.toLowerCase() === '+1sd');
+            const bandaInferioreIndex = headers.findIndex(h => h.toLowerCase() === 'banda_inferiore' || h.toLowerCase() === 'bandainferiore' || h.toLowerCase() === 'sd1_minus' || h.toLowerCase() === 'sd1_neg' || h.toLowerCase() === '-1sd');
             
             if (timeIndex === -1 || netGexIndex === -1) {
                 console.error("Intestazioni trovate:", headers, "Delimitatore usato:", delimiter);
@@ -676,8 +679,10 @@
                 const parsedZeroGamma = (zeroGammaIndex !== -1) ? safeParseFloat(currentline[zeroGammaIndex]) : null;
                 const parsedCvd = (cvdIndex !== -1) ? safeParseFloat(currentline[cvdIndex]) : null;
                 const parsedDeltaCvd = (deltaCvdIndex !== -1) ? safeParseFloat(currentline[deltaCvdIndex]) : null;
+                const parsedBandaSuperiore = (bandaSuperioreIndex !== -1) ? safeParseFloat(currentline[bandaSuperioreIndex]) : null;
+                const parsedBandaInferiore = (bandaInferioreIndex !== -1) ? safeParseFloat(currentline[bandaInferioreIndex]) : null;
                 if (parsedNetGex !== null) {
-                    result.push({ time: parsedDate, mpos: parsedMpos, mneg: parsedMneg, spot: parsedSpot, zeroGamma: parsedZeroGamma, netGex: parsedNetGex, cvd: parsedCvd, deltaCvd: parsedDeltaCvd });
+                    result.push({ time: parsedDate, mpos: parsedMpos, mneg: parsedMneg, spot: parsedSpot, zeroGamma: parsedZeroGamma, netGex: parsedNetGex, cvd: parsedCvd, deltaCvd: parsedDeltaCvd, bandaSuperiore: parsedBandaSuperiore, bandaInferiore: parsedBandaInferiore });
                 }
             }
             return result.sort((a, b) => a.time - b.time);
@@ -878,6 +883,8 @@
             const netGexData = data.map(d => ({ x: d.time, y: d.netGex }));
             const cvmData = data.map(d => ({ x: d.time, y: d.cvd }));
             const deltaCvdData = data.map(d => ({ x: d.time, y: d.deltaCvd }));
+            const bandaSuperioreData = data.map(d => ({ x: d.time, y: d.bandaSuperiore }));
+            const bandaInferioreData = data.map(d => ({ x: d.time, y: d.bandaInferiore }));
 
             // Troviamo i timestamp limite reali dei dati attuali filtrati
             const minTime = data[0].time;
@@ -928,6 +935,30 @@
                     pointHoverRadius: 4.5 
                 }
             ];
+
+            // Expected move: banda superiore/inferiore, disegnate solo se presenti nel CSV del giorno
+            if (bandaSuperioreData.some(d => d.y !== null)) {
+                topDatasets.push({
+                    label: 'Banda Superiore',
+                    data: bandaSuperioreData,
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    pointHoverRadius: 3.5
+                });
+            }
+            if (bandaInferioreData.some(d => d.y !== null)) {
+                topDatasets.push({
+                    label: 'Banda Inferiore',
+                    data: bandaInferioreData,
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    borderDash: [4, 4],
+                    pointRadius: 0,
+                    pointHoverRadius: 3.5
+                });
+            }
 
             if (showEma9State) {
                 const ema9Values = calculateEMA(spotValuesRaw, 9);
