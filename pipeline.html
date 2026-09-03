@@ -60,6 +60,16 @@
   .limit .tag.next{color:var(--teal); border-color:var(--teal);}
   .limit p{margin:0; font-size:14.5px;}
 
+  /* sub-heading dentro le sezioni */
+  h3.sub{font-family:var(--serif); font-weight:500; font-size:19px; margin:34px 0 12px;}
+
+  /* stack badges */
+  .stack{display:flex; flex-wrap:wrap; gap:9px; margin-top:22px;}
+  .badge{
+    font-family:var(--mono); font-size:12.5px; padding:6px 12px;
+    border:1px solid var(--line); color:var(--ink-soft); background:var(--bg-alt);
+  }
+
   footer{border-top:1px solid var(--line); padding:36px 0 60px; font-size:13px; color:var(--ink-soft);}
 
   @media (max-width:600px){
@@ -88,17 +98,17 @@
   <div class="pagehead">
     <div class="kicker">metodologia</div>
     <h1>Dalla catena opzioni al grafico che vedi</h1>
-    <p>Ogni giorno i dati attraversano cinque fasi, dalla raccolta grezza alla dashboard interattiva. Nessun backend proprietario: storage su Google Sheets, pubblicazione CSV, lettura client-side.</p>
+    <p>Ogni giorno i dati attraversano sette fasi, dalla raccolta grezza alla dashboard interattiva, con due passaggi ancora gestiti a mano. Nessun backend proprietario: storage su Google Sheets, pubblicazione CSV, lettura client-side.</p>
   </div>
 
   <section>
-    <div class="label">pipeline — 5 fasi</div>
+    <div class="label">pipeline — 7 fasi</div>
 
     <div class="stage">
       <div class="num">01</div>
       <div>
         <h3>Fonte dati</h3>
-        <p>Ogni intervallo, uno script legge la catena di opzioni di SPX e NDX (strike, open interest, gamma per strike) direttamente dai dati di mercato disponibili.</p>
+        <p>Ad ogni intervallo di tempo, uno script legge la catena di opzioni di SPX e NDX (strike, volumi e gamma per strike) direttamente dai dati di mercato disponibili, tramite API di Gexbot. Da settembre è stato aggiunto anche l'expected move per l'indice SPX.</p>
       </div>
     </div>
 
@@ -106,7 +116,7 @@
       <div class="num">02</div>
       <div>
         <h3>Script di raccolta</h3>
-        <p>Lo script aggrega l'open interest per strike, calcola il net gamma exposure e lo scrive come nuova riga sul foglio del giorno corrente, insieme a prezzo spot, volumi e agli altri indicatori che alimentano i quattro grafici.</p>
+        <p>Lo script aggrega i volumi per strike, il net gamma exposure e lo scrive come nuova riga sul foglio del giorno corrente, insieme a prezzo spot e il valore dello zero gamma.</p>
       </div>
     </div>
 
@@ -122,7 +132,7 @@
       <div class="num">04</div>
       <div>
         <h3>Pubblicazione CSV e master index</h3>
-        <p>Ogni foglio giorno viene pubblicato sul web in formato CSV. Un foglio separato, il master index, elenca tutti i giorni disponibili con la relativa data e il link CSV: è l'unica fonte che il sito deve leggere per sapere cosa mostrare nel calendario.</p>
+        <p>Il foglio di ogni giorno viene pubblicato sul web in formato CSV. Un foglio separato, il master index, elenca tutti i giorni disponibili con la relativa data e il link CSV: è l'unica fonte che il sito deve leggere per sapere cosa mostrare nel calendario.</p>
       </div>
     </div>
 
@@ -130,7 +140,32 @@
       <div class="num">05</div>
       <div>
         <h3>Dashboard</h3>
-        <p>La pagina scarica il master index, popola il calendario con i giorni disponibili, poi scarica e parsa il CSV del giorno selezionato per disegnare i quattro grafici con Chart.js, con refresh automatico ogni 60 secondi sul giorno corrente.</p>
+        <p>La pagina scarica il master index, popola il calendario con i giorni disponibili, poi scarica e parsa il CSV del giorno selezionato per disegnare i tre grafici con Chart.js, con refresh automatico ogni 60 secondi sul giorno corrente.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">06</div>
+      <div>
+        <h3>Output aggiuntivi</h3>
+        <p>Vengono generati in automatico a fine giornata due file PineScript, contenenti:</p>
+        <ul style="margin:10px 0 0; padding-left:18px; color:var(--ink-soft); font-size:14.5px;">
+          <li style="margin-bottom:4px;">Prezzo spot con i livelli dove l'esposizione gamma è massima e minima, linea zero gamma.</li>
+          <li>Il net gamma exposure.</li>
+        </ul>
+        <p style="margin-top:12px;">In aggiunta, una mail di conferma giornaliera con link diretto agli script.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">07</div>
+      <div>
+        <h3>Implementazioni manuali giornaliere</h3>
+        <p>La parte di processo non automatizzata è:</p>
+        <ul style="margin:10px 0 0; padding-left:18px; color:var(--ink-soft); font-size:14.5px;">
+          <li style="margin-bottom:4px;">Download dei dati CVD da piattaforma orderflow (tramite script dedicato) e inserimento nel foglio giornaliero (solo per SPX).</li>
+          <li>Pubblicazione del file giornaliero sul web in formato CSV, con inserimento nel master index (SPX e NDX).</li>
+        </ul>
       </div>
     </div>
   </section>
@@ -153,6 +188,30 @@
         <span><span class="sw" style="background:var(--teal)"></span> net GEX positivo — mercato compresso</span>
         <span><span class="sw" style="background:var(--rust)"></span> net GEX negativo — mercato instabile</span>
       </div>
+    </div>
+
+    <h3 class="sub">Cosa sono gli effetti di flusso 0DTE</h3>
+    <p>Le opzioni 0DTE (zero days to expiration) sono contratti che scadono nella stessa seduta in cui vengono negoziati. Da quando Cboe ha completato il calendario di scadenze settimanali sull'S&amp;P 500 nel 2022, esiste una scadenza quotata ogni giorno di contrattazione, e i contratti a scadenza giornaliera sono arrivati a pesare una quota enorme dei volumi sulle opzioni indicizzate: nei dati pubblicati da Cboe, in molte sedute è circa metà dell'intero volume su SPX.</p>
+    <p>Gli "effetti di flusso 0DTE" sono l'impronta intraday che questa attività lascia sul sottostante. Opzioni così vicine alla scadenza hanno un gamma estremo vicino al prezzo corrente, quindi anche piccoli movimenti dell'indice costringono i market maker a correggere in modo massiccio le proprie coperture. Quando i dealer assorbono flusso sbilanciato in una sola direzione nella stessa giornata, il loro ri-hedging può smorzare il movimento (comprando sui ribassi e vendendo sui rialzi, se sono long gamma) oppure amplificarlo, inseguendo il movimento se sono short gamma.</p>
+    <p>Sono effetti localizzati e di breve durata: la pressione si concentra sugli strike con maggior volume giornaliero, cresce nel corso del pomeriggio e scompare in chiusura, quando i contratti scadono. Le analisi di Cboe indicano che il flusso è mediamente abbastanza bilanciato da avere un impatto netto contenuto, ma nelle giornate in cui si sbilancia in una direzione, accelerazioni intraday marcate e fenomeni di "pin" su determinati strike vengono spesso attribuiti proprio a questo.</p>
+  </section>
+
+  <section>
+    <div class="label">stack</div>
+    <h2>Strumenti utilizzati</h2>
+    <p>Nessun servizio a pagamento oltre ai dati stessi: raccolta e automazioni girano su Google Apps Script, storage e pubblicazione su Google Sheets, output e frontend su strumenti gratuiti o già inclusi nell'ecosistema Google/GitHub.</p>
+    <div class="stack">
+      <span class="badge">Google Apps Script</span>
+      <span class="badge">Google Sheets</span>
+      <span class="badge">Gexbot API</span>
+      <span class="badge">ATAS (script custom in C#)</span>
+      <span class="badge">Gmail (invio automatico)</span>
+      <span class="badge">PineScript</span>
+      <span class="badge">TradingView</span>
+      <span class="badge">HTML / CSS / JS</span>
+      <span class="badge">Chart.js</span>
+      <span class="badge">CSV pubblicato sul web</span>
+      <span class="badge">GitHub Pages</span>
     </div>
   </section>
 
