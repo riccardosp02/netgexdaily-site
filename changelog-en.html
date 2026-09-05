@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Note giornaliere — netgexdaily</title>
+<title>Daily Notes — netgexdaily</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -56,29 +56,29 @@
 
 <header class="site">
   <div class="navrow">
-    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <a class="brand" href="index-en.html"><span class="dot"></span>netgexdaily</a>
     <div style="display:flex; align-items:center; gap:24px;">
       <nav class="links">
-        <a href="dashboard-spx.html">Dashboard SPX</a>
-        <a href="dashboard-ndx.html">Dashboard NDX</a>
-        <a href="pipeline.html">Come funziona</a>
-        <a href="changelog.html" class="active">Note giornaliere</a>
-        <a href="strategy-development.html">Strategy Development</a>
+        <a href="dashboard-spx-en.html">SPX Dashboard</a>
+        <a href="dashboard-ndx-en.html">NDX Dashboard</a>
+        <a href="pipeline-en.html">How it works</a>
+        <a href="changelog-en.html" class="active">Daily notes</a>
+        <a href="strategy-development-en.html">Strategy Development</a>
       </nav>
-      <div class="langswitch"><a href="changelog.html" class="active">IT</a><span>/</span><a href="changelog-en.html">EN</a></div>
+      <div class="langswitch"><a href="changelog.html">IT</a><span>/</span><a href="changelog-en.html" class="active">EN</a></div>
     </div>
   </div>
 </header>
 
 <main class="wrap">
   <div class="pagehead">
-    <div class="kicker">osservazioni giorno per giorno</div>
-    <h1>Note dal master index</h1>
-    <p>Annotazioni prese nei giorni in cui è successo qualcosa degno di nota: rotture di livelli, giornate FOMC, comportamenti anomali del net GEX. Lette in diretta dal Google Sheet master.</p>
+    <div class="kicker">day-by-day observations</div>
+    <h1>Notes from the master index</h1>
+    <p>Notes taken on days when something worth flagging happened: level breaks, FOMC days, unusual net GEX behavior. Read live from the master Google Sheet. Note content stays in the original Italian, exactly as written on the day.</p>
   </div>
 
   <div class="list" id="list">
-    <div class="state" id="state">Caricamento note dal master index...</div>
+    <div class="state" id="state">Loading notes from the master index...</div>
   </div>
 </main>
 
@@ -120,7 +120,7 @@
       const headers = parseCSVLine(lines[0]).map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
       const labelIdx = headers.indexOf('label');
       const noteIdx = headers.indexOf('note');
-      if (labelIdx === -1 || noteIdx === -1) throw new Error("Colonne 'label' o 'note' non trovate nel master index.");
+      if (labelIdx === -1 || noteIdx === -1) throw new Error("Columns 'label' or 'note' not found in the master index.");
 
       const maxSensibleDate = new Date();
       maxSensibleDate.setDate(maxSensibleDate.getDate() + 2);
@@ -145,7 +145,7 @@
 
       stateEl.remove();
       if (entries.length === 0) {
-        listEl.innerHTML = '<div class="state">Nessuna nota registrata finora.</div>';
+        listEl.innerHTML = '<div class="state">No notes recorded yet.</div>';
         return;
       }
       listEl.innerHTML = entries.map(e =>
@@ -153,7 +153,7 @@
       ).join('');
     } catch (error) {
       console.error(error);
-      stateEl.textContent = 'Errore nel caricamento delle note: ' + error.message;
+      stateEl.textContent = 'Error loading notes: ' + error.message;
       stateEl.classList.add('error');
     }
   }

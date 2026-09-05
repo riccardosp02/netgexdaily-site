@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>netgexdaily — Net gamma exposure su SPX e NDX</title>
+<title>netgexdaily — Net gamma exposure on SPX and NDX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -138,16 +138,16 @@
 
 <header class="site">
   <div class="navrow">
-    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <a class="brand" href="index-en.html"><span class="dot"></span>netgexdaily</a>
     <div style="display:flex; align-items:center; gap:24px;">
       <nav class="links">
-        <a href="dashboard-spx.html">Dashboard SPX</a>
-        <a href="dashboard-ndx.html">Dashboard NDX</a>
-        <a href="pipeline.html">Come funziona</a>
-        <a href="changelog.html">Note giornaliere</a>
-        <a href="strategy-development.html">Strategy Development</a>
+        <a href="dashboard-spx-en.html">SPX Dashboard</a>
+        <a href="dashboard-ndx-en.html">NDX Dashboard</a>
+        <a href="pipeline-en.html">How it works</a>
+        <a href="changelog-en.html">Daily notes</a>
+        <a href="strategy-development-en.html">Strategy Development</a>
       </nav>
-      <div class="langswitch"><a href="index.html" class="active">IT</a><span>/</span><a href="index-en.html">EN</a></div>
+      <div class="langswitch"><a href="index.html">IT</a><span>/</span><a href="index-en.html" class="active">EN</a></div>
     </div>
   </div>
 </header>
@@ -155,12 +155,12 @@
 <main class="wrap">
 
   <section class="hero" style="border-top:none; padding-bottom:0;">
-    <div class="kicker">progetto personale <span class="rule"></span> dati di mercato SPX / NDX</div>
-    <h1>Il net gamma exposure del mercato, letto un giorno alla volta.</h1>
-    <p class="lead">Raccolgo, calcolo e pubblico ogni giorno il net GEX di SPX e NDX a partire dalle catene di opzioni, poi lo visualizzo in dashboard interattive per leggere dove il mercato tende ad accelerare o a stabilizzarsi.</p>
+    <div class="kicker">personal project <span class="rule"></span> SPX / NDX market data</div>
+    <h1>The market's net gamma exposure, read one day at a time.</h1>
+    <p class="lead">Every day I collect, compute and publish the net GEX for SPX and NDX from the options chains, then visualize it in interactive dashboards to read where the market tends to accelerate or settle down.</p>
     <div class="ctas">
-      <a class="btn primary" href="dashboard-spx.html">Apri la dashboard SPX</a>
-      <a class="btn" href="pipeline.html">Come funziona la pipeline</a>
+      <a class="btn primary" href="dashboard-spx-en.html">Open the SPX dashboard</a>
+      <a class="btn" href="pipeline-en.html">How the pipeline works</a>
     </div>
 
     <div class="motif">
@@ -175,47 +175,47 @@
   </section>
 
   <section>
-    <div class="label">dashboard</div>
-    <h2>Due indici, stessa metodologia</h2>
-    <p>Ogni dashboard permette di scegliere un giorno da calendario e mostra tre grafici collegati: prezzo spot con i livelli dove l'esposizione gamma è massima e minima, il CVD (Cumulative Volume Delta) e il valore netto del gamma exposure, ogni dato campionato a intervalli di 5 minuti.</p>
+    <div class="label">dashboards</div>
+    <h2>Two indices, same methodology</h2>
+    <p>Each dashboard lets you pick a day from a calendar and shows three linked charts: spot price with the levels where gamma exposure is highest and lowest, the CVD (Cumulative Volume Delta), and the net gamma exposure value, each sampled at 5-minute intervals.</p>
     <div class="tiles">
-      <a class="tile" href="dashboard-spx.html">
+      <a class="tile" href="dashboard-spx-en.html">
         <span class="idx">SPX</span>
         <h3>S&amp;P 500 Index</h3>
-        <p>Serie giornaliera completa, dal primo giorno di raccolta a oggi.</p>
-        <span class="go">apri dashboard →</span>
+        <p>Full daily series, from the first day of collection to today.</p>
+        <span class="go">open dashboard →</span>
       </a>
-      <a class="tile" href="dashboard-ndx.html">
+      <a class="tile" href="dashboard-ndx-en.html">
         <span class="idx">NDX</span>
         <h3>Nasdaq 100 Index</h3>
-        <p>Stessa struttura dati e stessi grafici, applicati al Nasdaq 100.</p>
-        <span class="go">apri dashboard →</span>
+        <p>Same data structure and same charts, applied to the Nasdaq 100.</p>
+        <span class="go">open dashboard →</span>
       </a>
     </div>
   </section>
 
   <section>
-    <div class="label">metodologia</div>
-    <h2>Dalla catena opzioni al grafico</h2>
-    <p>Il sito non ospita un database tradizionale: usa Google Sheets come storage leggero e ispezionabile, un foglio pubblicato per ogni giorno, indicizzati da un master file che il sito legge automaticamente.</p>
+    <div class="label">methodology</div>
+    <h2>From the options chain to the chart</h2>
+    <p>The site doesn't run a traditional database: it uses Google Sheets as lightweight, inspectable storage, one published sheet per day, indexed by a master file the site reads automatically.</p>
     <div class="steps">
-      <div class="step"><span class="n">01</span><span class="t"><b>Fonte dati</b> — catena opzioni SPX / NDX</span></div>
-      <div class="step"><span class="n">02</span><span class="t"><b>Script di raccolta</b> — calcola il net GEX e salva una riga</span></div>
-      <div class="step"><span class="n">03</span><span class="t"><b>Google Sheets</b> — un foglio per ogni giorno di dati</span></div>
-      <div class="step"><span class="n">04</span><span class="t"><b>Pubblicazione CSV</b> — foglio giorno + master index</span></div>
-      <div class="step"><span class="n">05</span><span class="t"><b>Dashboard</b> — fetch del CSV e rendering dei grafici</span></div>
+      <div class="step"><span class="n">01</span><span class="t"><b>Data source</b> — SPX / NDX options chain</span></div>
+      <div class="step"><span class="n">02</span><span class="t"><b>Collection script</b> — computes net GEX and saves a row</span></div>
+      <div class="step"><span class="n">03</span><span class="t"><b>Google Sheets</b> — one sheet per day of data</span></div>
+      <div class="step"><span class="n">04</span><span class="t"><b>CSV publishing</b> — day sheet + master index</span></div>
+      <div class="step"><span class="n">05</span><span class="t"><b>Dashboard</b> — fetches the CSV and renders the charts</span></div>
     </div>
-    <p style="margin-top:24px;"><a class="btn" href="pipeline.html">Leggi la pipeline completa</a></p>
+    <p style="margin-top:24px;"><a class="btn" href="pipeline-en.html">Read the full pipeline</a></p>
   </section>
 
   <section>
     <div class="label">stack</div>
-    <h2>Strumenti usati</h2>
+    <h2>Tools used</h2>
     <div class="stack">
       <span class="badge">HTML / CSS / JS</span>
       <span class="badge">Chart.js</span>
       <span class="badge">Google Sheets</span>
-      <span class="badge">CSV pubblicato sul web</span>
+      <span class="badge">CSV published to the web</span>
       <span class="badge">GitHub Pages</span>
     </div>
   </section>
@@ -226,23 +226,23 @@
   <div class="wrap">
     <div class="cols">
       <div>
-        <h4>Chi ha costruito questo</h4>
-        <p>Progetto personale nato per monitorare la struttura del gamma sul mercato opzioni, costruito e mantenuto in autonomia: raccolta dati, calcolo e visualizzazione.</p>
+        <h4>Who built this</h4>
+        <p>A personal project born to monitor the gamma structure of the options market, built and maintained independently: data collection, computation and visualization.</p>
         <div class="social">
           <a href="#" target="_blank" rel="noopener">GitHub</a>
           <a href="#" target="_blank" rel="noopener">LinkedIn</a>
         </div>
       </div>
       <div>
-        <h4>Naviga</h4>
-        <p><a href="dashboard-spx.html">Dashboard SPX</a></p>
-        <p><a href="dashboard-ndx.html">Dashboard NDX</a></p>
-        <p><a href="pipeline.html">Come funziona</a></p>
-        <p><a href="changelog.html">Note giornaliere</a></p>
+        <h4>Navigate</h4>
+        <p><a href="dashboard-spx-en.html">SPX Dashboard</a></p>
+        <p><a href="dashboard-ndx-en.html">NDX Dashboard</a></p>
+        <p><a href="pipeline-en.html">How it works</a></p>
+        <p><a href="changelog-en.html">Daily notes</a></p>
       </div>
     </div>
     <div class="disclaimer">
-      Progetto personale a scopo educativo e dimostrativo. I dati mostrati non costituiscono consulenza finanziaria.
+      Personal project for educational and demonstration purposes. The data shown does not constitute financial advice.
     </div>
   </div>
 </footer>

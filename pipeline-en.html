@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Come funziona — netgexdaily</title>
+<title>How it works — netgexdaily</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -87,16 +87,16 @@
 
 <header class="site">
   <div class="navrow">
-    <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+    <a class="brand" href="index-en.html"><span class="dot"></span>netgexdaily</a>
     <div style="display:flex; align-items:center; gap:24px;">
       <nav class="links">
-        <a href="dashboard-spx.html">Dashboard SPX</a>
-        <a href="dashboard-ndx.html">Dashboard NDX</a>
-        <a href="pipeline.html" class="active">Come funziona</a>
-        <a href="changelog.html">Note giornaliere</a>
-        <a href="strategy-development.html">Strategy Development</a>
+        <a href="dashboard-spx-en.html">SPX Dashboard</a>
+        <a href="dashboard-ndx-en.html">NDX Dashboard</a>
+        <a href="pipeline-en.html" class="active">How it works</a>
+        <a href="changelog-en.html">Daily notes</a>
+        <a href="strategy-development-en.html">Strategy Development</a>
       </nav>
-      <div class="langswitch"><a href="pipeline.html" class="active">IT</a><span>/</span><a href="pipeline-en.html">EN</a></div>
+      <div class="langswitch"><a href="pipeline.html">IT</a><span>/</span><a href="pipeline-en.html" class="active">EN</a></div>
     </div>
   </div>
 </header>
@@ -104,43 +104,43 @@
 <main class="wrap">
 
   <div class="pagehead">
-    <div class="kicker">metodologia</div>
-    <h1>Dalla catena opzioni al grafico che vedi</h1>
-    <p>Ogni giorno i dati attraversano sette fasi, dalla raccolta grezza alla dashboard interattiva, con due passaggi ancora gestiti a mano. Nessun backend proprietario: storage su Google Sheets, pubblicazione CSV, lettura client-side.</p>
+    <div class="kicker">methodology</div>
+    <h1>From the options chain to the chart you see</h1>
+    <p>Every day the data goes through seven stages, from raw collection to the interactive dashboard, with two steps still handled by hand. No proprietary backend: storage on Google Sheets, CSV publishing, client-side reading.</p>
   </div>
 
   <section>
-    <div class="label">pipeline — 7 fasi</div>
+    <div class="label">pipeline — 7 stages</div>
 
     <div class="stage">
       <div class="num">01</div>
       <div>
-        <h3>Fonte dati</h3>
-        <p>Ad ogni intervallo di tempo, uno script legge la catena di opzioni di SPX e NDX (strike, volumi e gamma per strike) direttamente dai dati di mercato disponibili, tramite API di Gexbot. Da settembre è stato aggiunto anche l'expected move per l'indice SPX.</p>
+        <h3>Data source</h3>
+        <p>At every time interval, a script reads the SPX and NDX options chain (strikes, volumes and gamma per strike) directly from available market data, via the Gexbot API. Since September, the expected move has also been added for the SPX index.</p>
       </div>
     </div>
 
     <div class="stage">
       <div class="num">02</div>
       <div>
-        <h3>Script di raccolta</h3>
-        <p>Lo script aggrega i volumi per strike, il net gamma exposure e lo scrive come nuova riga sul foglio del giorno corrente, insieme a prezzo spot e il valore dello zero gamma.</p>
+        <h3>Collection script</h3>
+        <p>The script aggregates volumes per strike and net gamma exposure, and writes it as a new row on the current day's sheet, together with the spot price and the zero gamma value.</p>
       </div>
     </div>
 
     <div class="stage">
       <div class="num">03</div>
       <div>
-        <h3>Google Sheets come storage</h3>
-        <p>Ogni giorno di trading ha un proprio foglio. Non è un database vero e proprio, ma per un progetto personale è una scelta deliberata: zero infrastruttura da mantenere, dati sempre ispezionabili e correggibili a mano quando serve.</p>
+        <h3>Google Sheets as storage</h3>
+        <p>Every trading day has its own sheet. It's not a real database, but for a personal project it's a deliberate choice: zero infrastructure to maintain, data that's always inspectable and correctable by hand when needed.</p>
       </div>
     </div>
 
     <div class="stage">
       <div class="num">04</div>
       <div>
-        <h3>Pubblicazione CSV e master index</h3>
-        <p>Il foglio di ogni giorno viene pubblicato sul web in formato CSV. Un foglio separato, il master index, elenca tutti i giorni disponibili con la relativa data e il link CSV: è l'unica fonte che il sito deve leggere per sapere cosa mostrare nel calendario.</p>
+        <h3>CSV publishing and master index</h3>
+        <p>Each day's sheet is published to the web in CSV format. A separate sheet, the master index, lists all available days with their date and CSV link: it's the only source the site needs to read to know what to show in the calendar.</p>
       </div>
     </div>
 
@@ -148,41 +148,41 @@
       <div class="num">05</div>
       <div>
         <h3>Dashboard</h3>
-        <p>La pagina scarica il master index, popola il calendario con i giorni disponibili, poi scarica e parsa il CSV del giorno selezionato per disegnare i tre grafici con Chart.js, con refresh automatico ogni 60 secondi sul giorno corrente.</p>
+        <p>The page downloads the master index, populates the calendar with the available days, then downloads and parses the CSV for the selected day to draw the three charts with Chart.js, with an automatic refresh every 60 seconds on the current day.</p>
       </div>
     </div>
 
     <div class="stage">
       <div class="num">06</div>
       <div>
-        <h3>Output aggiuntivi</h3>
-        <p>Vengono generati in automatico a fine giornata due file PineScript, contenenti:</p>
+        <h3>Additional outputs</h3>
+        <p>Two PineScript files are automatically generated at the end of the day, containing:</p>
         <ul style="margin:10px 0 0; padding-left:18px; color:var(--ink-soft); font-size:14.5px;">
-          <li style="margin-bottom:4px;">Prezzo spot con i livelli dove l'esposizione gamma è massima e minima, linea zero gamma.</li>
-          <li>Il net gamma exposure.</li>
+          <li style="margin-bottom:4px;">Spot price with the levels where gamma exposure is highest and lowest, and the zero gamma line.</li>
+          <li>The net gamma exposure.</li>
         </ul>
-        <p style="margin-top:12px;">In aggiunta, una mail di conferma giornaliera con link diretto agli script.</p>
+        <p style="margin-top:12px;">In addition, a daily confirmation email with a direct link to the scripts.</p>
       </div>
     </div>
 
     <div class="stage">
       <div class="num">07</div>
       <div>
-        <h3>Implementazioni manuali giornaliere</h3>
-        <p>La parte di processo non automatizzata è:</p>
+        <h3>Daily manual steps</h3>
+        <p>The part of the process that isn't automated yet:</p>
         <ul style="margin:10px 0 0; padding-left:18px; color:var(--ink-soft); font-size:14.5px;">
-          <li style="margin-bottom:4px;">Download dei dati CVD da piattaforma orderflow (tramite script dedicato) e inserimento nel foglio giornaliero (solo per SPX).</li>
-          <li>Pubblicazione del file giornaliero sul web in formato CSV, con inserimento nel master index (SPX e NDX).</li>
+          <li style="margin-bottom:4px;">Downloading CVD data from an orderflow platform (via a dedicated script) and entering it into the daily sheet (SPX only).</li>
+          <li>Publishing the daily file to the web as CSV, and adding it to the master index (both SPX and NDX).</li>
         </ul>
       </div>
     </div>
   </section>
 
   <section>
-    <div class="label">cos'è il net gex</div>
-    <h2>Perché guardare il net gamma exposure</h2>
-    <p>Il net gamma exposure (net GEX) stima quanto i market maker devono comprare o vendere sull'indice sottostante per restare delta-neutrali man mano che il prezzo si muove, sommando il gamma di tutte le opzioni aperte su ogni strike.</p>
-    <p>Quando il net GEX è positivo, i market maker tendono a vendere sui rialzi e comprare sui ribassi: il mercato si comprime, la volatilità realizzata si smorza. Quando è negativo, succede l'opposto: le loro coperture amplificano il movimento, e la volatilità tende a espandersi. Il punto in cui il net GEX passa da positivo a negativo — la "linea dello zero" — è spesso il livello che i trader guardano come spartiacque tra regime di mercato calmo e regime di mercato instabile.</p>
+    <div class="label">what is net gex</div>
+    <h2>Why look at net gamma exposure</h2>
+    <p>Net gamma exposure (net GEX) estimates how much market makers need to buy or sell on the underlying index to stay delta-neutral as the price moves, by summing the gamma of all open options across every strike.</p>
+    <p>When net GEX is positive, market makers tend to sell into rallies and buy into dips: the market compresses, and realized volatility gets dampened. When it's negative, the opposite happens: their hedging amplifies the move, and volatility tends to expand. The point where net GEX flips from positive to negative — the "zero line" — is often the level traders watch as the divide between a calm market regime and an unstable one.</p>
 
     <div class="gex-visual">
       <svg viewBox="0 0 760 160" preserveAspectRatio="none">
@@ -193,55 +193,55 @@
         <path d="M0,80 C60,105 120,140 180,130 C240,120 260,85 320,80 C380,75 420,105 480,115 C540,125 580,100 640,80 C680,67 720,60 760,65" fill="none" stroke="var(--rust)" stroke-width="1.5"/>
       </svg>
       <div class="legend">
-        <span><span class="sw" style="background:var(--teal)"></span> net GEX positivo — mercato compresso</span>
-        <span><span class="sw" style="background:var(--rust)"></span> net GEX negativo — mercato instabile</span>
+        <span><span class="sw" style="background:var(--teal)"></span> positive net GEX — compressed market</span>
+        <span><span class="sw" style="background:var(--rust)"></span> negative net GEX — unstable market</span>
       </div>
     </div>
 
-    <h3 class="sub">Cosa sono gli effetti di flusso 0DTE</h3>
-    <p>Le opzioni 0DTE (zero days to expiration) sono contratti che scadono nella stessa seduta in cui vengono negoziati. Da quando Cboe ha completato il calendario di scadenze settimanali sull'S&amp;P 500 nel 2022, esiste una scadenza quotata ogni giorno di contrattazione, e i contratti a scadenza giornaliera sono arrivati a pesare una quota enorme dei volumi sulle opzioni indicizzate: nei dati pubblicati da Cboe, in molte sedute è circa metà dell'intero volume su SPX.</p>
-    <p>Gli "effetti di flusso 0DTE" sono l'impronta intraday che questa attività lascia sul sottostante. Opzioni così vicine alla scadenza hanno un gamma estremo vicino al prezzo corrente, quindi anche piccoli movimenti dell'indice costringono i market maker a correggere in modo massiccio le proprie coperture. Quando i dealer assorbono flusso sbilanciato in una sola direzione nella stessa giornata, il loro ri-hedging può smorzare il movimento (comprando sui ribassi e vendendo sui rialzi, se sono long gamma) oppure amplificarlo, inseguendo il movimento se sono short gamma.</p>
-    <p>Sono effetti localizzati e di breve durata: la pressione si concentra sugli strike con maggior volume giornaliero, cresce nel corso del pomeriggio e scompare in chiusura, quando i contratti scadono. Le analisi di Cboe indicano che il flusso è mediamente abbastanza bilanciato da avere un impatto netto contenuto, ma nelle giornate in cui si sbilancia in una direzione, accelerazioni intraday marcate e fenomeni di "pin" su determinati strike vengono spesso attribuiti proprio a questo.</p>
+    <h3 class="sub">What are 0DTE flow effects</h3>
+    <p>0DTE options (zero days to expiration) are contracts that expire in the same session they're traded. Since Cboe completed the weekly expiration calendar on the S&amp;P 500 in 2022, there has been a listed expiry every trading day, and same-day contracts have grown into a large share of index options volume: in Cboe's published figures, on many days it's roughly half of total SPX volume.</p>
+    <p>"0DTE flow effects" are the intraday footprint this activity leaves on the underlying. Options this close to expiry carry extreme gamma near the current price, so even small index moves force market makers to make large hedging adjustments. When dealers absorb one-sided same-day flow, their re-hedging can dampen the move (buying dips and selling rallies, if they're long gamma) or amplify it, chasing the move if they're short gamma.</p>
+    <p>These effects are strike-local and short-lived: pressure concentrates on the strikes with the heaviest same-day volume, builds through the afternoon, and disappears at the close, when the contracts expire. Cboe's research generally finds the flow balanced enough that its average net impact is modest, but on days where it tilts one way, sharp intraday accelerations and "pinning" around certain strikes are often attributed to it.</p>
   </section>
 
   <section>
     <div class="label">stack</div>
-    <h2>Strumenti utilizzati</h2>
-    <p>Nessun servizio a pagamento oltre ai dati stessi: raccolta e automazioni girano su Google Apps Script, storage e pubblicazione su Google Sheets, output e frontend su strumenti gratuiti o già inclusi nell'ecosistema Google/GitHub.</p>
+    <h2>Tools used</h2>
+    <p>No paid service beyond the data itself: collection and automation run on Google Apps Script, storage and publishing on Google Sheets, output and frontend on free tools or ones already included in the Google/GitHub ecosystem.</p>
     <div class="stack">
       <span class="badge">Google Apps Script</span>
       <span class="badge">Google Sheets</span>
       <span class="badge">Gexbot API</span>
-      <span class="badge">ATAS (script custom in C#)</span>
-      <span class="badge">Gmail (invio automatico)</span>
+      <span class="badge">ATAS (custom script in C#)</span>
+      <span class="badge">Gmail (automatic sending)</span>
       <span class="badge">PineScript</span>
       <span class="badge">TradingView</span>
       <span class="badge">HTML / CSS / JS</span>
       <span class="badge">Chart.js</span>
-      <span class="badge">CSV pubblicato sul web</span>
+      <span class="badge">CSV published to the web</span>
       <span class="badge">GitHub Pages</span>
     </div>
   </section>
 
   <section>
-    <div class="label">limiti e prossimi sviluppi</div>
-    <h2>Cosa so che manca ancora</h2>
+    <div class="label">limitations and next steps</div>
+    <h2>What I know is still missing</h2>
     <div class="limits">
       <div class="limit">
-        <span class="tag">limite</span>
-        <p>Google Sheets come storage non scala oltre qualche centinaio di giorni e non gestisce query o aggregazioni: va bene per un archivio consultabile, non per analisi storiche pesanti.</p>
+        <span class="tag">limitation</span>
+        <p>Google Sheets as storage doesn't scale beyond a few hundred days and can't handle queries or aggregations: fine as a browsable archive, not for heavy historical analysis.</p>
       </div>
       <div class="limit">
-        <span class="tag next">prossimo</span>
-        <p>Migrare lo storage a un database vero (es. Postgres/SQLite) con un piccolo backend, per interrogare più giorni insieme invece di uno alla volta.</p>
+        <span class="tag next">next</span>
+        <p>Migrate storage to a real database (e.g. Postgres/SQLite) with a small backend, to query multiple days together instead of one at a time.</p>
       </div>
       <div class="limit">
-        <span class="tag">limite</span>
-        <p>Il refresh dei dati intraday dipende dal fetch lato client: se il browser resta chiuso, non c'è storico "al secondo", solo l'ultimo dato salvato nel foglio.</p>
+        <span class="tag">limitation</span>
+        <p>Intraday data refresh relies on client-side fetching: if the browser stays closed, there's no "to-the-second" history, only the last value saved in the sheet.</p>
       </div>
       <div class="limit">
-        <span class="tag next">prossimo</span>
-        <p>Aggiungere altri indici oltre SPX e NDX, e un sistema di alert quando il prezzo attraversa la linea dello zero gamma.</p>
+        <span class="tag next">next</span>
+        <p>Add more indices beyond SPX and NDX, and an alert system for when price crosses the zero gamma line.</p>
       </div>
     </div>
   </section>
@@ -250,7 +250,7 @@
 
 <footer>
   <div class="wrap">
-    Progetto personale a scopo educativo e dimostrativo. I dati mostrati non costituiscono consulenza finanziaria.
+    Personal project for educational and demonstration purposes. The data shown does not constitute financial advice.
   </div>
 </footer>
 

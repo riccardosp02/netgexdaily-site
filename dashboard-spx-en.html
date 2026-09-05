@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard NDX — netgexdaily</title>
+    <title>SPX Dashboard — netgexdaily</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- Tailwind CSS per uno stile moderno e pulito -->
@@ -84,33 +84,29 @@
 <body class="text-slate-800 p-2 flex flex-col justify-between h-full">
 
     <div class="w-full flex items-center justify-between px-1 pb-2 mb-1 shrink-0">
-        <a href="index.html" class="flex items-center gap-2 text-[13px] font-medium text-slate-800" style="font-family:'IBM Plex Mono',monospace;">
+        <a href="index-en.html" class="flex items-center gap-2 text-[13px] font-medium text-slate-800" style="font-family:'IBM Plex Mono',monospace;">
             <span class="inline-block w-[7px] h-[7px] rounded-full" style="background:#1D9E75"></span>netgexdaily
         </a>
         <div class="flex items-center gap-5 text-xs">
-            <a href="dashboard-spx.html" class="text-slate-500 hover:text-slate-800">SPX</a>
-            <a href="dashboard-ndx.html" class="font-semibold text-slate-800 border-b border-slate-800 pb-0.5">NDX</a>
-            <a href="pipeline.html" class="text-slate-500 hover:text-slate-800">Come funziona</a>
-            <a href="changelog.html" class="text-slate-500 hover:text-slate-800">Note</a>
-            <a href="strategy-development.html" class="text-slate-500 hover:text-slate-800">Strategy</a>
+            <a href="dashboard-spx-en.html" class="font-semibold text-slate-800 border-b border-slate-800 pb-0.5">SPX</a>
+            <a href="dashboard-ndx-en.html" class="text-slate-500 hover:text-slate-800">NDX</a>
+            <a href="pipeline-en.html" class="text-slate-500 hover:text-slate-800">How it works</a>
+            <a href="changelog-en.html" class="text-slate-500 hover:text-slate-800">Notes</a>
+            <a href="strategy-development-en.html" class="text-slate-500 hover:text-slate-800">Strategy</a>
             <span class="flex items-center gap-1.5" style="font-family:'IBM Plex Mono',monospace;">
-                <a href="dashboard-ndx.html" class="font-semibold text-slate-800">IT</a>
+                <a href="dashboard-spx.html" class="text-slate-400 hover:text-slate-700">IT</a>
                 <span class="text-slate-300">/</span>
-                <a href="dashboard-ndx-en.html" class="text-slate-400 hover:text-slate-700">EN</a>
+                <a href="dashboard-spx-en.html" class="font-semibold text-slate-800">EN</a>
             </span>
         </div>
-    </div>
-
-    <div id="ndx-todo-banner" class="w-full shrink-0 mb-1 px-3 py-2 rounded-lg text-xs font-medium hidden" style="background:#FBEBE1; color:#7A2E13;">
-        Il Master Index NDX non è ancora collegato: sostituisci MASTER_CSV_URL nel codice con il link pubblicato del tuo foglio master NDX.
     </div>
 
     <div class="w-full flex-1 min-h-0 bg-white rounded-lg border border-slate-100 shadow-sm p-3 md:p-5 flex flex-col justify-between overflow-hidden">
         <!-- Intestazione del widget -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-2 mb-2 gap-2 shrink-0">
             <div>
-                <h1 id="chart-title" class="text-base md:text-lg font-bold text-slate-900">Andamento GEX, Volumi & Spot (Crawler)</h1>
-                <p class="text-[10px] text-slate-500 mt-0.5">Sorgente dati: Google Sheets (Aggiornato in tempo reale)</p>
+                <h1 id="chart-title" class="text-base md:text-lg font-bold text-slate-900">GEX, Volume & Spot Trend (Crawler)</h1>
+                <p class="text-[10px] text-slate-500 mt-0.5">Data source: Google Sheets (updated in real time)</p>
             </div>
             <!-- Controlli e indicatori di stato -->
             <div class="flex flex-wrap items-center gap-2">
@@ -119,7 +115,7 @@
                 <div class="relative">
                     <button id="day-selector-btn" type="button" class="flex items-center bg-slate-100 hover:bg-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 gap-1.5 transition-colors">
                         <span>📅</span>
-                        <span id="day-selector-label">Caricamento giorni...</span>
+                        <span id="day-selector-label">Loading days...</span>
                     </button>
                     <div id="calendar-popup" class="hidden absolute z-50 top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 p-3 w-[280px]">
                         <div class="flex items-center justify-between mb-2 px-1">
@@ -137,7 +133,7 @@
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="time-filter-toggle" class="sr-only peer" checked>
                         <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                        <span class="ml-1.5 text-xs font-semibold text-slate-700 pr-1">Dati 21-22</span>
+                        <span class="ml-1.5 text-xs font-semibold text-slate-700 pr-1">21-22 Data</span>
                     </label>
                 </div>
 
@@ -162,7 +158,7 @@
                 <!-- Menu a Tendina (Dropdown) per la gestione dei Pannelli -->
                 <div class="relative inline-block text-left shrink-0" id="panels-menu-container">
                     <button id="panels-menu-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-colors focus:outline-none select-none">
-                        <span>Pannelli ⚙️</span>
+                        <span>Panels ⚙️</span>
                         <svg class="w-3 h-3 text-slate-500 transition-transform duration-200" id="panels-menu-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -199,9 +195,9 @@
         
                 <div id="status-indicator" class="flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="status-text">Caricamento...</span>
+                    <span id="status-text">Loading...</span>
                 </div>
-                <button id="refresh-btn" class="p-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors duration-200" title="Aggiorna ora">
+                <button id="refresh-btn" class="p-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-lg transition-colors duration-200" title="Refresh now">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 15M22 10v5h-5" />
                     </svg>
@@ -235,7 +231,7 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </div>
-                    <p id="overlay-text" class="text-sm font-medium text-slate-600">Download dei dati da Google Sheets...</p>
+                    <p id="overlay-text" class="text-sm font-medium text-slate-600">Downloading data from Google Sheets...</p>
                 </div>
             </div>
         </div>
@@ -243,18 +239,18 @@
         <!-- Info aggiuntive in basso -->
         <div class="mt-1 pt-1 border-t border-slate-100 flex flex-row justify-between text-[10px] text-slate-400 gap-1 shrink-0">
             <div>
-                <span>Aggiornamento automatico: </span>
+                <span>Auto-refresh: </span>
                 <span id="countdown" class="font-semibold text-slate-600">60s</span>
             </div>
             <div id="last-update">
-                Ultimo controllo: --:--:--
+                Last check: --:--:--
             </div>
         </div>
     </div>
 
     <script>
-        // URL del "Master Index" NDX: sostituisci con il link CSV pubblicato del tuo foglio master NDX
-        const MASTER_CSV_URL = 'INSERISCI_QUI_IL_LINK_CSV_DEL_MASTER_INDEX_NDX';
+        // URL del "Master Index": elenca tutti i giorni disponibili e il relativo CSV pubblicato
+        const MASTER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRcBhHiCZ7gurJNv6p9xbTkLHzrObPz-8D3xKUE3dYXt8t54btmzL-VfYxwbMwplGGRnG9SvWy8gCk0/pub?gid=0&single=true&output=csv';
         const UPDATE_INTERVAL = 60000; // 60 secondi
 
         let availableDays = [];      // [{ label, url, dateObj }], ordinati dal più recente al più vecchio
@@ -415,9 +411,9 @@
             const dayPrefix = currentDayLabel ? `[${currentDayLabel}] ` : '';
             if (latestRecord && latestRecord.time) {
                 const formattedTime = formatTimeItalian(latestRecord.time);
-                document.getElementById('chart-title').textContent = `${dayPrefix}Andamento GEX, Volumi & Spot (Crawler) - Ultimo Check delle ${formattedTime}`;
+                document.getElementById('chart-title').textContent = `${dayPrefix}GEX, Volume & Spot Trend (Crawler) - Last check at ${formattedTime}`;
             } else {
-                document.getElementById('chart-title').textContent = `${dayPrefix}Andamento GEX, Volumi & Spot (Crawler)`;
+                document.getElementById('chart-title').textContent = `${dayPrefix}GEX, Volume & Spot Trend (Crawler)`;
             }
 
             activeFilteredData = filteredData;
@@ -1200,8 +1196,8 @@
 
         async function fetchAndRenderData(isSilent = false) {
             if (!currentDayUrl) return;
-            if (!isSilent) showOverlay('Download dei dati da Google Sheets...');
-            updateStatus('Download...', 'loading');
+            if (!isSilent) showOverlay('Downloading data from Google Sheets...');
+            updateStatus('Downloading...', 'loading');
             try {
                 const response = await fetch(currentDayUrl + '&t=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -1212,14 +1208,14 @@
                 hideOverlay();
                 filterAndRenderData();
                 const nowStr = formatTimeItalian(new Date());
-                document.getElementById('last-update').textContent = `Ultimo controllo: ${nowStr}`;
-                updateStatus('Dati aggiornati');
+                document.getElementById('last-update').textContent = `Last check: ${nowStr}`;
+                updateStatus('Data updated');
                 resetCountdown();
             } catch (error) {
-                console.error("Errore nel download:", error);
+                console.error("Download error:", error);
                 hideOverlay();
-                if (rawChartData.length === 0) showOverlay(`Errore: ${error.message}. Verifica link o pubblicazione.`, true);
-                updateStatus('Errore di aggiornamento', 'error');
+                if (rawChartData.length === 0) showOverlay(`Error: ${error.message}. Check the link or publication.`, true);
+                updateStatus('Update error', 'error');
                 resetCountdown();
             }
         }
@@ -1258,7 +1254,7 @@
                 if (!label || !url || !url.startsWith('http')) continue; // salta giorni senza CSV pubblicato
                 const dateObj = parseItalianDateLabel(label);
                 if (dateObj && dateObj > maxSensibleDate) {
-                    console.warn(`Master Index: la data "${label}" sembra errata (nel futuro) e viene ignorata. Controlla il Google Sheet.`);
+                    console.warn(`Master Index: the date "${label}" looks wrong (in the future) and is being ignored. Check the Google Sheet.`);
                     continue;
                 }
                 days.push({ label, url, dateObj });
@@ -1279,8 +1275,8 @@
         let calViewMonth = null;  // mese (0-11) attualmente mostrato nel popup calendario
         let currentDayIndex = null;
 
-        const MESI_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-        const GIORNI_IT = ['Lu','Ma','Me','Gi','Ve','Sa','Do'];
+        const MESI_IT = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const GIORNI_IT = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
         function sameDate(a, b) {
             return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -1361,28 +1357,21 @@
         }
 
         async function fetchMasterAndInit() {
-            if (MASTER_CSV_URL.startsWith('INSERISCI_QUI')) {
-                document.getElementById('ndx-todo-banner').classList.remove('hidden');
-                hideOverlay();
-                showOverlay('Master Index NDX non ancora collegato. Vedi il messaggio in alto.', true);
-                updateStatus('In attesa del link master', 'error');
-                return;
-            }
-            showOverlay('Caricamento elenco giorni disponibili...');
-            updateStatus('Caricamento giorni...', 'loading');
+            showOverlay('Loading available days...');
+            updateStatus('Loading days...', 'loading');
             try {
                 const response = await fetch(MASTER_CSV_URL + '&t=' + new Date().getTime());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const csvText = await response.text();
                 availableDays = parseMasterCSV(csvText);
-                if (availableDays.length === 0) throw new Error("Nessun giorno con CSV pubblicato trovato nel Master Index.");
+                if (availableDays.length === 0) throw new Error("No day with a published CSV found in the Master Index.");
                 openCalendarOnSelectedDay();
                 selectDay(0, false); // Seleziona di default il giorno più recente
             } catch (error) {
-                console.error("Errore nel download del Master Index:", error);
+                console.error("Master Index download error:", error);
                 hideOverlay();
-                showOverlay(`Errore Master Index: ${error.message}`, true);
-                updateStatus('Errore Master Index', 'error');
+                showOverlay(`Master Index error: ${error.message}`, true);
+                updateStatus('Master Index error', 'error');
             }
         }
 
