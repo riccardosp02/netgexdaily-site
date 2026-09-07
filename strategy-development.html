@@ -47,6 +47,14 @@
   }
   .wip-panel p{color:var(--ink-soft); font-size:15.5px; max-width:56ch; margin:0;}
 
+  .btn{
+    font-family:var(--sans); font-size:14px; font-weight:500; text-decoration:none;
+    padding:11px 20px; border:1px solid var(--ink); color:var(--ink);
+    display:inline-block; transition:background .15s, color .15s;
+  }
+  .btn.primary{background:var(--ink); color:var(--bg);}
+  .btn.primary:hover{background:var(--teal); border-color:var(--teal);}
+
   footer{border-top:1px solid var(--line); padding:36px 0 60px; font-size:13px; color:var(--ink-soft);}
 
   @media (max-width:600px){
@@ -82,8 +90,17 @@
   </div>
 
   <div class="wip-panel">
-    <span class="wip-badge">🚧 Work in progress</span>
-    <p>Questa pagina è ancora vuota: i backtest sono in corso e i primi risultati non sono ancora pronti per essere condivisi. Torna a trovarmi presto.</p>
+    <div style="width:100%; border:1px solid var(--line); padding:20px 22px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX/NDX futures</div>
+        <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">Breakout VA — Full History</h3>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Strategia breakout su rottura di value area, validata su storico esteso gennaio 2020 – settembre 2026 con split walk-forward S1/S2.</p>
+      </div>
+      <a class="btn primary" href="strategy-breakout-va.html" style="white-space:nowrap;">Apri il report →</a>
+    </div>
+
+    <span class="wip-badge" style="margin-top:28px;">🚧 Work in progress</span>
+    <p>Altri backtest sono in corso: pubblicherò qui i prossimi risultati man mano che saranno pronti.</p>
   </div>
 
 </main>
