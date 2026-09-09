@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Options Flow — netgexdaily</title>
+<style>
+:root{
+  --bg:#f3f6f7; --panel:#ffffff; --panel-2:#eaf1f2; --border:#d7e0e2;
+  --text:#0f1a1c; --text-dim:#5a6b6e; --accent:#0e7c80; --accent-dim:rgba(14,124,128,0.10);
+  --gain:#1f8f6b; --gain-dim:rgba(31,143,107,0.10); --loss:#c33f34; --loss-dim:rgba(195,63,52,0.10);
+  --warn:#b8860b; --shadow:0 1px 2px rgba(10,20,20,.05),0 8px 24px -12px rgba(10,20,20,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#060a0b; --panel:#0d1417; --panel-2:#121b1e; --border:#1e2a2d;
+    --text:#e4eef0; --text-dim:#82969b; --accent:#2dd4d6; --accent-dim:rgba(45,212,214,.12);
+    --gain:#34d399; --gain-dim:rgba(52,211,153,.12); --loss:#f87171; --loss-dim:rgba(248,113,113,.12);
+    --warn:#d4a017; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#060a0b; --panel:#0d1417; --panel-2:#121b1e; --border:#1e2a2d;
+  --text:#e4eef0; --text-dim:#82969b; --accent:#2dd4d6; --accent-dim:rgba(45,212,214,.12);
+  --gain:#34d399; --gain-dim:rgba(52,211,153,.12); --loss:#f87171; --loss-dim:rgba(248,113,113,.12);
+  --warn:#d4a017; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;}
+body{background:var(--bg); color:var(--text); font-family:"Public Sans","Segoe UI",system-ui,sans-serif; margin:0; padding:0 0 60px;}
+.wrap{max-width:900px; margin:0 auto; padding:0 24px;}
+header.top{padding:32px 24px 20px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,var(--panel-2),var(--bg));}
+header.top .eyebrow{font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 8px;}
+header.top h1{font-size:28px; font-weight:700; margin:0 0 8px;}
+.panel-card{background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:20px 22px; margin:20px 0;}
+.section-title{font-size:16px; font-weight:700; margin:0 0 10px;}
+.hint{color:var(--text-dim); font-size:13.5px; line-height:1.6; margin:0 0 10px;}
+code{font-family:"JetBrains Mono",monospace; font-size:12.5px; background:var(--panel-2); padding:1px 5px; border-radius:4px;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{text-align:left; font-family:"JetBrains Mono",monospace; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--border);}
+td{padding:9px 10px; border-bottom:1px solid var(--border);}
+td.num{text-align:right; font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;}
+.up{color:var(--gain);} .down{color:var(--loss);}
+.table-scroll{overflow-x:auto;}
+.best-row{font-weight:600; background:var(--accent-dim);}
+ol,ul{margin:0 0 10px; padding-left:20px; line-height:1.7;}
+.badge{display:inline-block; font-family:"JetBrains Mono",monospace; font-size:11px; padding:2px 8px; border-radius:20px; background:var(--accent-dim); color:var(--accent); margin-left:8px;}
+footer.foot{text-align:center; color:var(--text-dim); font-size:12px; padding:40px 24px 0; font-family:"JetBrains Mono",monospace;}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+</head>
+<body>
+
+<style>
+  .site-nav{
+    max-width:1180px; margin:0 auto; padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:"JetBrains Mono",monospace; font-size:13px;
+    border-bottom:1px solid var(--border);
+  }
+  .site-nav a{ text-decoration:none; }
+  .site-nav .brand{ display:flex; align-items:center; gap:8px; color:var(--text); font-weight:500; }
+  .site-nav .brand .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; }
+  .site-nav .links{ display:flex; gap:20px; }
+  .site-nav .links a{ color:var(--text-dim); }
+  .site-nav .links a:hover{ color:var(--text); }
+  .site-nav .links a.active{ color:var(--accent); }
+  @media (max-width:640px){ .site-nav .links{ display:none; } }
+</style>
+<nav class="site-nav">
+  <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+  <div class="links">
+    <a href="dashboard-spx.html">Dashboard SPX</a>
+    <a href="dashboard-ndx.html">Dashboard NDX</a>
+    <a href="pipeline.html">Come funziona</a>
+    <a href="changelog.html">Note</a>
+    <a href="strategy-development.html" class="active">Strategy Development</a>
+  </div>
+</nav>
+
+
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">Options flow &middot; gamma exposure</p>
+    <h1>Options Flow <span class="badge">Long + Short</span></h1>
+    <p class="hint" style="margin:0;">Strategia separata dal dataset Breakout VA &mdash; basata sui livelli di gamma exposure (mpos_vol / mneg_vol) invece che sulla Value Area intraday. Dati: SPX (spot, riferimento GEX) convertiti in equivalente ES futures, giugno&ndash;settembre 2026 (~64 giorni).</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="panel-card">
+    <div class="section-title">La strategia in breve</div>
+    <p class="hint">Quando il prezzo scende e tocca il livello di gamma negativo principale (<code>mneg_vol</code>), i dealer di opzioni sono spinti a comprare per coprirsi &mdash; il prezzo tende a rimbalzare. La strategia compra quel rimbalzo, ma solo quando l'order flow (CVD) e il flusso gamma (net_gex_vol) mostrano il segno di una vendita in esaurimento, non di un trend che sta ancora accelerando.</p>
+    <ol>
+      <li><b>Livello</b>: <code>mneg_vol</code> dal feed GEX (SPX spot), smussato con mediana mobile su 5 snapshot (~25 min) per evitare valori isolati anomali, convertito in equivalente ES sommando il basis future&ndash;spot calcolato al momento.</li>
+      <li><b>Filtro d'ingresso &mdash; tocco + pinbar</b>: il minimo della candela 5m entra in una banda di &plusmn;$2 attorno al livello, <b>e</b> la stessa candela chiude sopra il livello (rifiuto).</li>
+      <li><b>Filtro pre-tocco &mdash; esaurimento</b>: nei 15 minuti prima del tocco, sia il CVD sia il <code>net_gex_vol</code> devono essere in calo rispetto a 3 candele prima (delta &le; 0 per entrambi) &mdash; segnale di vendita/pressione gamma che si sta esaurendo proprio sul livello.</li>
+      <li><b>Filtro post-tocco &mdash; conferma dell'inversione (requisito per entrare)</b>: dopo il tocco, entro le 6 candele successive (~30 min), il <b>delta di <code>net_gex_vol</code> deve tornare positivo</b> &mdash; cio&egrave; <code>net_gex_vol</code> deve risalire rispetto al suo valore registrato nell'istante del tocco. <b>Non serve che <code>net_gex_vol</code> superi lo zero assoluto</b>, pu&ograve; restare negativo: basta che stia risalendo rispetto a dov'era al momento del tocco. Se questa risalita non arriva entro la finestra, il trade non si prende (o si evita se gi&agrave; aperto) &mdash; senza questa conferma il PF crolla a ~0 (rischio di prosecuzione del trend oltre il livello). Il CVD pu&ograve; confermare insieme a NGV o restare indietro: non &egrave; un requisito, ma quando anche il CVD si inverte il segnale &egrave; ancora pi&ugrave; solido.</li>
+      <li><b>Entry</b>: a mercato, alla chiusura della candela di segnale (dopo la conferma NGV).</li>
+      <li><b>Stop loss</b>: livello mneg_vol meno un offset fisso (vedi tabella, $10&ndash;15 il range testato, $14 il migliore).</li>
+      <li><b>Take profit</b>: livello mpos_vol meno $2 di tolleranza.</li>
+      <li><b>Gestione</b>: chiusura forzata alle 21:00 IT se n&eacute; stop n&eacute; target sono scattati; un solo trade alla volta (no overlap).</li>
+    </ol>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Tabella operativa &mdash; da usare live</div>
+    <p class="hint">Filtro completo: tocco+pinbar, CVD e NGV entrambi in calo pre-tocco, NGV in risalita post-tocco (141 candidati pre-filtro, 109 con conferma NGV, ~64 giorni). RR = rapporto reward:risk nominale.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>SL sotto mneg_vol</th><th>Finestra conferma NGV</th><th>RR medio</th><th>N trade</th><th>PF</th><th>Win Rate</th><th>Max DD</th><th>Sharpe</th></tr></thead>
+        <tbody>
+          <tr><td>$10</td><td>&le;30 min (6 candele 5m)</td><td class="num">2.18</td><td class="num">36</td><td class="num">2.552</td><td class="num">58.3%</td><td class="num down">-4.3%</td><td class="num">4.26</td></tr>
+          <tr><td>$11</td><td>&le;30 min (6 candele 5m)</td><td class="num">2.00</td><td class="num">36</td><td class="num">2.422</td><td class="num">61.1%</td><td class="num down">-4.6%</td><td class="num">4.09</td></tr>
+          <tr><td>$12</td><td>&le;30 min (6 candele 5m)</td><td class="num">1.87</td><td class="num">36</td><td class="num">2.277</td><td class="num">61.1%</td><td class="num down">-5.1%</td><td class="num">3.86</td></tr>
+          <tr><td>$13</td><td>&le;30 min (6 candele 5m)</td><td class="num">1.64</td><td class="num">35</td><td class="num">2.253</td><td class="num">62.9%</td><td class="num down">-5.6%</td><td class="num">4.09</td></tr>
+          <tr class="best-row"><td>$14</td><td>&le;30 min (6 candele 5m)</td><td class="num">1.53</td><td class="num">33</td><td class="num">2.688</td><td class="num">63.6%</td><td class="num down">-4.7%</td><td class="num">4.86</td></tr>
+          <tr><td>$15</td><td>&le;30 min (6 candele 5m)</td><td class="num">1.45</td><td class="num">33</td><td class="num">2.569</td><td class="num">63.6%</td><td class="num down">-4.9%</td><td class="num">4.68</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Riga evidenziata ($14): miglior Sharpe assoluto e miglior PF di tutto il range &mdash; configurazione consigliata. Drawdown sotto il 5% su tutto lo sweep, nettamente meglio di ogni versione precedente della strategia.</p>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Perch&eacute; il filtro NGV post-tocco &egrave; necessario</div>
+    <p class="hint">Scomposizione per comportamento dopo il tocco (SL $14, 37 trade prima del filtro NGV):</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Comportamento post-tocco</th><th>N</th><th>PF</th><th>Win Rate</th></tr></thead>
+        <tbody>
+          <tr><td>Entrambi (CVD e NGV) si invertono</td><td class="num">25</td><td class="num">2.94</td><td class="num">68.0%</td></tr>
+          <tr><td>Solo NGV si inverte</td><td class="num">5</td><td class="num">3.38</td><td class="num">80.0%</td></tr>
+          <tr><td>Solo CVD si inverte (NGV no)</td><td class="num">3</td><td class="num down">0.00</td><td class="num down">0%</td></tr>
+          <tr><td>Nessuno dei due si inverte</td><td class="num">4</td><td class="num down">0.02</td><td class="num down">25%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Senza la conferma NGV (i due gruppi in basso, 7 trade su 37) il risultato &egrave; quasi sempre una perdita &mdash; &egrave; il caso in cui il trend prosegue oltre il livello nonostante la pinbar. Il CVD da solo non &egrave; sufficiente: NGV &egrave; l'indicatore che conta.</p>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Short <span class="badge">stesso filtro, mirror</span></div>
+    <p class="hint">Fade da <code>mpos_vol</code> (resistenza) invece che da <code>mneg_vol</code>, con lo stesso filtro CVD/NGV specchiato: pre-tocco richiede CVD e NGV **in salita** (esaurimento di acquisti, non di vendite), conferma post-tocco richiede che il delta NGV **torni negativo** (ridiscenda rispetto al valore al momento del tocco). Tutto il resto identico (pinbar, TP sul livello opposto &plusmn;$2, chiusura 21:00 IT, no overlap).</p>
+    <p class="hint"><b>Risultato: lo Short, da sempre il lato pi&ugrave; debole in questo progetto, con questo filtro diventa competitivo &mdash; anzi leggermente superiore al Long.</b></p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Configurazione</th><th>Finestra conferma NGV</th><th>N</th><th>PF</th><th>Win Rate</th><th>Max DD</th><th>Sharpe</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline (solo tocco+pinbar)</td><td>&mdash;</td><td class="num">51-58</td><td class="num">1.03-1.08</td><td class="num">47-51%</td><td class="num down">-17/-19%</td><td class="num">0.2-0.5</td></tr>
+          <tr><td>+ pre-filtro CVD/NGV in salita</td><td>&mdash;</td><td class="num">37-41</td><td class="num">1.23-1.41</td><td class="num">49-54%</td><td class="num down">-7/-9%</td><td class="num">1.3-2.2</td></tr>
+          <tr class="best-row"><td>+ conferma NGV post-tocco (in discesa)</td><td>&le;30 min (6 candele 5m)</td><td class="num">28</td><td class="num">2.46-3.10</td><td class="num">71.4%</td><td class="num down">-5/-6%</td><td class="num">5.9-7.4</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Con SL $10 sopra mpos_vol: PF 3.10, Sharpe 7.35, il risultato migliore di tutta la dashboard (Long incluso). Scomposizione per comportamento post-tocco (41 trade prima del filtro NGV):</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Comportamento post-tocco</th><th>N</th><th>PF</th><th>Win Rate</th></tr></thead>
+        <tbody>
+          <tr><td>Entrambi (CVD e NGV) si invertono</td><td class="num">23</td><td class="num">3.27</td><td class="num">73.9%</td></tr>
+          <tr><td>Solo NGV si inverte</td><td class="num">3</td><td class="num">5.92</td><td class="num">66.7%</td></tr>
+          <tr><td>Solo CVD si inverte (NGV no)</td><td class="num">7</td><td class="num down">0.04</td><td class="num down">14.3%</td></tr>
+          <tr><td>Nessuno dei due si inverte</td><td class="num">8</td><td class="num down">0.00</td><td class="num down">0%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Stessa dinamica del Long: senza conferma NGV il trade va quasi sempre in perdita (15 trade su 41 nei due gruppi in basso), il CVD da solo non basta.</p>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Cautele</div>
+    <ul>
+      <li>Campione moderato (28-36 trade per riga a seconda del lato, ~64 giorni totali) &mdash; molto pi&ugrave; solido delle versioni precedenti ma comunque non enorme.</li>
+      <li>Il filtro CVD/NGV su Short è stato testato una sola volta (non ancora walk-forward S1/S2 come fatto altrove nel progetto) &mdash; trattarlo con la stessa cautela metodologica.</li>
+      <li>Nessun costo di commissioni/slippage modellato.</li>
+    </ul>
+  </div>
+
+  <footer class="foot">Options Flow &middot; gamma exposure fade strategy &middot; dati SPX/ES giugno-settembre 2026</footer>
+</div>
+
+</body>
+</html>
