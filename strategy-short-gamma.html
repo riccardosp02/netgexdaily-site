@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Short Gamma — netgexdaily</title>
+<style>
+:root{
+  --bg:#f3f6f7; --panel:#ffffff; --panel-2:#eaf1f2; --border:#d7e0e2;
+  --text:#0f1a1c; --text-dim:#5a6b6e; --accent:#0e7c80; --accent-dim:rgba(14,124,128,0.10);
+  --gain:#1f8f6b; --gain-dim:rgba(31,143,107,0.10); --loss:#c33f34; --loss-dim:rgba(195,63,52,0.10);
+  --warn:#b8860b; --ema:#8a4ec9; --shadow:0 1px 2px rgba(10,20,20,.05),0 8px 24px -12px rgba(10,20,20,.14);
+  --series-a:#c9822f; --series-b:#2a78d6; --series-c:#8a4ec9; --series-d:#1f8f6b; --series-e:#c33f34;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#060a0b; --panel:#0d1417; --panel-2:#121b1e; --border:#1e2a2d;
+    --text:#e4eef0; --text-dim:#82969b; --accent:#2dd4d6; --accent-dim:rgba(45,212,214,.12);
+    --gain:#34d399; --gain-dim:rgba(52,211,153,.12); --loss:#f87171; --loss-dim:rgba(248,113,113,.12);
+    --warn:#d4a017; --ema:#b78bf0; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+    --series-a:#e0a355; --series-b:#3987e5; --series-c:#b78bf0; --series-d:#34d399; --series-e:#f87171;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#060a0b; --panel:#0d1417; --panel-2:#121b1e; --border:#1e2a2d;
+  --text:#e4eef0; --text-dim:#82969b; --accent:#2dd4d6; --accent-dim:rgba(45,212,214,.12);
+  --gain:#34d399; --gain-dim:rgba(52,211,153,.12); --loss:#f87171; --loss-dim:rgba(248,113,113,.12);
+  --warn:#d4a017; --ema:#b78bf0; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+  --series-a:#e0a355; --series-b:#3987e5; --series-c:#b78bf0; --series-d:#34d399; --series-e:#f87171;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg); color:var(--text); font-family:"Public Sans","Segoe UI",system-ui,sans-serif; margin:0; padding:0 0 60px;}
+.wrap{max-width:900px; margin:0 auto; padding:0 24px;}
+header.top{padding:32px 24px 20px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,var(--panel-2),var(--bg));}
+header.top .eyebrow{font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 8px;}
+header.top h1{font-size:28px; font-weight:700; margin:0 0 8px;}
+.source-note{background:var(--accent-dim); border:1px solid var(--accent); border-radius:10px; padding:12px 16px; font-size:13px; color:var(--text); line-height:1.6; margin-top:14px;}
+.source-note b{color:var(--accent);}
+.panel-card{background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:20px 22px; margin:20px 0;}
+.section-title{font-size:16px; font-weight:700; margin:0 0 10px;}
+.hint{color:var(--text-dim); font-size:13.5px; line-height:1.6; margin:0 0 10px;}
+code{font-family:"JetBrains Mono",monospace; font-size:12.5px; background:var(--panel-2); padding:1px 5px; border-radius:4px;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th{text-align:left; font-family:"JetBrains Mono",monospace; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--border);}
+td{padding:9px 10px; border-bottom:1px solid var(--border);}
+td.num{text-align:right; font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums;}
+.up{color:var(--gain);} .down{color:var(--loss);}
+.table-scroll{overflow-x:auto;}
+.best-row{font-weight:600; background:var(--accent-dim);}
+ol,ul{margin:0 0 10px; padding-left:20px; line-height:1.7;}
+.badge{display:inline-block; font-family:"JetBrains Mono",monospace; font-size:11px; padding:2px 8px; border-radius:20px; background:var(--accent-dim); color:var(--accent); margin-left:8px;}
+.badge.loss{background:var(--loss-dim); color:var(--loss);}
+footer.foot{text-align:center; color:var(--text-dim); font-size:12px; padding:40px 24px 0; font-family:"JetBrains Mono",monospace;}
+
+.cvd-diagram-label{font-family:"JetBrains Mono",monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); margin:10px 0 2px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;}
+.cvd-legend-inline{display:inline-flex; align-items:center; gap:4px; font-size:10px; text-transform:none; letter-spacing:0;}
+.cvd-legend-inline .sw{display:inline-block; width:9px; height:9px; border-radius:2px; margin-left:8px;}
+.cvd-legend-inline .sw:first-child{margin-left:0;}
+.cvd-schema{display:block; width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; margin-bottom:2px;}
+.cvd-svg-label{font-size:9px; font-family:"JetBrains Mono",monospace; fill:var(--text-dim);}
+
+.chart-legend{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--text-dim); margin-bottom:8px;}
+.chart-legend-item{display:flex; align-items:center; gap:5px;}
+.sw-line{width:14px; height:0; border-top:2px dashed currentColor;}
+.sw-solid{width:14px; height:2px; background:currentColor;}
+.chart-svg{display:block; width:100%; height:auto;}
+.axis-label{fill:var(--text-dim); font-size:10px; font-family:"JetBrains Mono",monospace;}
+.level-label{font-size:10.5px; font-family:"JetBrains Mono",monospace; font-weight:700;}
+.gridline{stroke:var(--border); stroke-width:1;}
+
+.eq-legend{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px; font-size:12.5px; color:var(--text-dim);}
+.eq-legend-item{display:flex; align-items:center; gap:6px;}
+.eq-swatch{width:14px; height:2px; border-radius:1px;}
+.eq-chart-wrap{position:relative;}
+.eq-chart-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+.eq-gridline{stroke:var(--border); stroke-width:1;}
+.eq-baseline{stroke:var(--text-dim); stroke-width:1; opacity:.5;}
+.eq-axis-label{fill:var(--text-dim); font-size:10.5px; font-family:"JetBrains Mono",monospace;}
+.eq-line{fill:none; stroke-width:2;}
+.eq-crosshair{stroke:var(--text-dim); stroke-width:1; stroke-dasharray:3,3; opacity:0;}
+.eq-dot{opacity:0;}
+.eq-final-label{font-size:11px; font-weight:700; font-family:"JetBrains Mono",monospace;}
+.eq-tooltip{position:absolute; pointer-events:none; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:11.5px; color:var(--text); box-shadow:var(--shadow); opacity:0; transition:opacity .1s; white-space:nowrap; z-index:5;}
+.eq-tooltip .row{display:flex; justify-content:space-between; gap:14px;}
+.eq-tooltip .row span:first-child{color:var(--text-dim);}
+.eq-tooltip .date{color:var(--text-dim); font-size:10.5px; margin-bottom:4px;}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+</head>
+<body>
+
+<style>
+  .site-nav{{
+    max-width:1180px; margin:0 auto; padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:"JetBrains Mono",monospace; font-size:13px;
+    border-bottom:1px solid var(--border);
+  }}
+  .site-nav a{{ text-decoration:none; }}
+  .site-nav .brand{{ display:flex; align-items:center; gap:8px; color:var(--text); font-weight:500; }}
+  .site-nav .brand .dot{{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; }}
+  .site-nav .links{{ display:flex; gap:20px; }}
+  .site-nav .links a{{ color:var(--text-dim); }}
+  .site-nav .links a:hover{{ color:var(--text); }}
+  .site-nav .links a.active{{ color:var(--accent); }}
+  @media (max-width:640px){{ .site-nav .links{{ display:none; }} }}
+</style>
+<nav class="site-nav">
+  <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>
+  <div class="links">
+    <a href="dashboard-spx.html">Dashboard SPX</a>
+    <a href="dashboard-ndx.html">Dashboard NDX</a>
+    <a href="pipeline.html">Come funziona</a>
+    <a href="changelog.html">Note</a>
+    <a href="strategy-development.html" class="active">Strategy Development</a>
+  </div>
+</nav>
+
+
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">Gamma exposure &middot; resistenza in trend ribassista</p>
+    <h1>Short Gamma <span class="badge">Solo Short</span></h1>
+    <p class="hint" style="margin:0 0 6px;">Strategia indipendente da "Options Flow" &mdash; non fa fade su un livello gamma, ma sfrutta <code>zero_gamma</code> come resistenza quando il mercato &egrave; gi&agrave; in trend ribassista. Dati: SPX 5m Yahoo Finance, giugno&ndash;settembre 2026 (66 giorni).</p>
+    <p class="hint" style="margin:0; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--accent);">Ultimo aggiornamento backtest: 10/09/2026</p>
+    <div class="source-note">
+      <b>Fonte dati:</b> prezzo SPX 5m reale (Yahoo Finance), livelli GEX grezzi (nessuna conversione ES). <b>CVD</b> ricostruito dalle candele ES 5m di <code>FUTURES MENSILI</code> (Yahoo non lo fornisce). <b>EMA(50)</b> di trend calcolata in continuo sulle sole candele RTH (15:30&ndash;22:00 IT), <b>senza reset giornaliero</b> &mdash; un primo tentativo con EMA resettata ogni giorno dava risultati gonfiati e non validi, corretto dopo verifica.
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="panel-card">
+    <div class="section-title">La strategia in breve</div>
+    <p class="hint">Nasce da una domanda: <i>durante un mercato ribassista, <code>zero_gamma</code> fa da resistenza?</i> La risposta &egrave; s&igrave; (in modo asimmetrico: il supporto speculare in mercato rialzista NON regge, vedi sezione dedicata sotto). La strategia entra short quando il prezzo risale a testare <code>zero_gamma</code> dal basso, in un contesto gi&agrave; ribassista, con conferma di esaurimento sul flusso ordini.</p>
+    <ol>
+      <li><b>Contesto</b>: prezzo sotto la sua <b>EMA(50)</b> (continua, solo RTH) &mdash; il mercato deve essere gi&agrave; in trend ribassista.</li>
+      <li><b>Tocco</b>: il massimo della candela 5m entra in banda di &plusmn;$2 attorno a <code>zero_gamma</code>, con il prezzo che arriva da sotto (era gi&agrave; sotto <code>zero_gamma</code> prima del tocco).</li>
+      <li><b>Pre-tocco &mdash; esaurimento</b>: nei 15 minuti prima del tocco (3 candele), sia il CVD sia il <code>net_gex_vol</code> devono essere <b>in salita</b> (delta &ge; 0) &mdash; i compratori hanno spinto il prezzo fin l&igrave;, ma l'acquisto si sta esaurendo.</li>
+      <li><b>Post-tocco &mdash; conferma</b>: entro le 6 candele successive (30 min), il <code>net_gex_vol</code> deve tornare a <b>scendere</b> rispetto al valore registrato al tocco.</li>
+      <li><b>Entry</b>: a mercato, alla chiusura della candela di conferma.</li>
+      <li><b>Stop loss</b>: <code>zero_gamma</code> + $10. <b>Take profit</b>: <code>mneg_vol</code> (il livello di gamma negativo).</li>
+      <li><b>Gestione</b>: chiusura forzata alle 21:00 IT; un solo trade alla volta.</li>
+    </ol>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Comportamento di CVD e net_gex_vol <span class="badge">esaurimento + conferma</span></div>
+    <p class="hint">Stesso principio della strategia "Options Flow", applicato al rifiuto di un livello invece che al rimbalzo: prima del tocco il flusso che ha spinto il prezzo verso <code>zero_gamma</code> deve mostrare segni di esaurimento (CVD e NGV <b>in salita</b>, dato che il prezzo arriva da sotto); dopo il tocco, il <code>net_gex_vol</code> deve invertire (tornare a <b>scendere</b>) per confermare il rifiuto.</p>
+    <div class="cvd-diagram-label">Schema atteso <span class="cvd-legend-inline"><span class="sw" style="background:var(--loss)"></span>CVD <span class="sw" style="background:var(--warn)"></span>net_gex_vol</span></div>
+    <svg class="cvd-schema" viewBox="0 0 200 100"><path d="M10,85 C45,83 65,20 92,15 C120,10 150,72 190,90" fill="none" stroke="var(--loss)" stroke-width="3"/><path d="M10,70 C45,60 68,12 92,10 C112,8 145,60 190,80" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="6,3"/><line x1="92" y1="8" x2="92" y2="95" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="3,3"/><text x="92" y="8" text-anchor="middle" class="cvd-svg-label">tocco</text><text x="30" y="16" class="cvd-svg-label">esaurimento</text><text x="140" y="16" class="cvd-svg-label">conferma</text></svg>
+    <div class="cvd-diagram-label">Caso reale &mdash; 6 agosto 2026, tocco 16:55 <span class="cvd-legend-inline"><span class="sw" style="background:var(--loss)"></span>CVD <span class="sw" style="background:var(--warn)"></span>net_gex_vol</span></div>
+    <svg class="cvd-schema" viewBox="0 0 260 100"><polyline points="14.0,30.6 35.1,23.1 56.2,46.4 77.3,39.4 98.4,22.3 119.5,35.3 140.5,30.6 161.6,38.0 182.7,71.1 203.8,73.6 224.9,70.2 246.0,77.7" fill="none" stroke="var(--loss)" stroke-width="2.5"/><polyline points="14.0,28.0 35.1,41.9 56.2,33.9 77.3,47.0 98.4,37.2 119.5,22.3 140.5,38.6 161.6,32.4 182.7,47.9 203.8,69.1 224.9,77.7 246.0,70.7" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="5,3"/><line x1="98.4" y1="8" x2="98.4" y2="95" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="3,3"/><text x="98.4" y="8" text-anchor="middle" class="cvd-svg-label">tocco 16:55</text></svg>
+    <p class="hint" style="margin-top:10px;">Il caso reale &egrave; pi&ugrave; rumoroso dello schema (come sempre sui dati veri), ma la forma di fondo regge: entrambe le serie salgono verso il tocco e poi cedono &mdash; il <code>net_gex_vol</code> in particolare scende con decisione dopo la candela di conferma (17:05).</p>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Perch&eacute; solo lo short <span class="badge loss">il long non regge</span></div>
+    <p class="hint">Prima di costruire la strategia ho verificato l'ipotesi speculare: <code>zero_gamma</code> fa da <b>supporto</b> in un mercato <b>rialzista</b>? Ho testato il tocco dal basso (long) con lo stesso identico impianto (EMA rialzista, target <code>mpos_vol</code>). Risultato: <b>non regge</b>.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Direzione</th><th>Contesto</th><th>N</th><th>Net %</th><th>PF</th><th>Win Rate</th></tr></thead>
+        <tbody>
+          <tr class="best-row"><td>Short</td><td>Resistenza in ribassista</td><td class="num">119</td><td class="num up">+12.31%</td><td class="num">1.22</td><td class="num">54.6%</td></tr>
+          <tr><td>Long</td><td>Supporto in rialzista</td><td class="num">109</td><td class="num up">+1.57%</td><td class="num">1.02</td><td class="num">39.4%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Il long è sostanzialmente in pareggio (PF 1.02, win rate sotto il 40%) &mdash; nessun edge reale. L'asimmetria è coerente con un pattern gi&agrave; osservato in un'altra ricerca su questo stesso progetto (breakout sopra <code>mpos_vol</code> che funziona, breakdown sotto <code>mneg_vol</code> che no): il lato ribassista di questi livelli sembra strutturalmente pi&ugrave; sfruttabile di quello rialzista.</p>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Risultati &mdash; effetto dei filtri CVD/NGV</div>
+    <p class="hint">119 trade di base (solo trend + tocco), poi filtri aggiunti progressivamente. RR medio = reward:risk nominale (target <code>mneg_vol</code> vs stop), su conto nozionale $50.000.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Configurazione</th><th>N</th><th>RR medio</th><th>Net %</th><th>Max DD %</th><th>Win Rate</th><th>PF</th><th>Sharpe</th></tr></thead>
+        <tbody>
+          <tr><td>Solo trend + tocco (baseline)</td><td class="num">119</td><td class="num">1.42</td><td class="num up">+12.31%</td><td class="num down">-9.52%</td><td class="num">54.6%</td><td class="num">1.22</td><td class="num">1.27</td></tr>
+          <tr><td>+ pre-filtro CVD/NGV (esaurimento)</td><td class="num">57</td><td class="num">1.38</td><td class="num up">+14.52%</td><td class="num down">-4.61%</td><td class="num">56.1%</td><td class="num">1.70</td><td class="num">3.42</td></tr>
+          <tr><td>+ conferma NGV post-tocco</td><td class="num">83</td><td class="num">1.31</td><td class="num up">+14.48%</td><td class="num down">-5.26%</td><td class="num">61.4%</td><td class="num">1.52</td><td class="num">2.61</td></tr>
+          <tr class="best-row"><td>+ entrambi (configurazione finale)</td><td class="num">33</td><td class="num">0.81</td><td class="num up">+7.81%</td><td class="num down">-2.50%</td><td class="num">72.7%</td><td class="num">1.91</td><td class="num">3.92</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Aggiungere entrambi i filtri quasi raddoppia il PF e triplica lo Sharpe rispetto al baseline, dimezzando il drawdown &mdash; a costo di un campione pi&ugrave; piccolo (33 trade, distribuiti su 24/66 giorni, non concentrati). Esiti: 22 TP, 6 SL, 5 CUTOFF. In grafico anche la <b>Variante B</b> (rottura dall'alto, vedi sezione dedicata sotto) per confronto diretto.</p>
+    <div class="eq-legend" id="eq-legend"></div>
+    <div class="eq-chart-wrap">
+      <svg id="eq-chart"></svg>
+      <div class="eq-tooltip" id="eq-tooltip"></div>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Casi reali</div>
+    <p class="hint">Due esempi dalla configurazione finale (entrambi i filtri).</p>
+
+    <div class="chart-legend">
+      <div class="chart-legend-item" style="color:var(--warn)"><span class="sw-line"></span>zero_gamma (resistenza)</div>
+      <div class="chart-legend-item" style="color:var(--loss)"><span class="sw-line"></span>mneg_vol (target/TP)</div>
+      <div class="chart-legend-item" style="color:var(--ema)"><span class="sw-line" style="border-top-style:solid;"></span>EMA(50) RTH continua</div>
+      <div class="chart-legend-item" style="color:var(--text-dim)"><span class="sw-solid"></span>Entry / SL</div>
+    </div>
+    <p class="hint"><b>6 agosto 2026</b> &mdash; tocco 16:55, entry 17:05, uscita 18:15. TP, +29.5 punti.</p>
+    <svg class="chart-svg" id="chart1" viewBox="0 0 820 380"></svg>
+
+    <p class="hint" style="margin-top:18px;"><b>26 agosto 2026</b> &mdash; tocco 16:40, entry 16:45, uscita 18:35. Caso pi&ugrave; lento: il prezzo resta ingabbiato attorno a <code>zero_gamma</code> per quasi due ore prima di cedere. TP, +13.3 punti.</p>
+    <svg class="chart-svg" id="chart2" viewBox="0 0 820 380"></svg>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Variante B &mdash; rottura dall'alto, conferma a candela <span class="badge">no CVD/NGV</span></div>
+    <p class="hint">Variante pi&ugrave; semplice, senza flusso ordini: invece di un tocco-e-rifiuto dal basso, cerca una candela che <b>arriva da sopra</b> <code>zero_gamma</code> (era gi&agrave; sopra) e <b>chiude sotto</b> &mdash; una rottura verso il basso &mdash; con una forma precisa che indica convinzione di vendita. Stesso contesto EMA(50), stessi SL/TP.</p>
+    <ol>
+      <li><b>Contesto</b>: prezzo sotto la sua EMA(50) (continua, solo RTH) &mdash; identico alla variante principale.</li>
+      <li><b>Rottura</b>: la candela precedente chiudeva sopra <code>zero_gamma</code>, quella attuale chiude sotto.</li>
+      <li><b>Forma della candela di conferma</b>: <b>full body</b> (corpo &ge; 60% del range, ribassista) oppure <b>pinbar ribassista</b> (ombra superiore &ge; 50% del range, corpo &le; 30%) &mdash; vedi disegno sotto.</li>
+      <li><b>Entry</b>: a mercato, alla chiusura della stessa candela di rottura.</li>
+      <li><b>Stop loss / Take profit</b>: identici &mdash; <code>zero_gamma</code> + $10 / <code>mneg_vol</code>.</li>
+    </ol>
+
+    <div class="cvd-diagram-label">Le due forme accettate come conferma</div>
+    <svg class="cvd-schema" viewBox="0 0 320 140">
+      <text x="70" y="18" text-anchor="middle" class="cvd-svg-label" style="font-size:11px;">Full body</text>
+      <line x1="70" y1="30" x2="70" y2="115" stroke="var(--text-dim)" stroke-width="1.5"/>
+      <rect x="58" y="38" width="24" height="70" fill="var(--loss)"/>
+      <text x="95" y="45" class="cvd-svg-label">corpo &ge; 60% del range</text>
+      <text x="95" y="105" class="cvd-svg-label">chiude vicino al minimo</text>
+
+      <text x="250" y="18" text-anchor="middle" class="cvd-svg-label" style="font-size:11px;">Pinbar ribassista</text>
+      <line x1="250" y1="20" x2="250" y2="115" stroke="var(--text-dim)" stroke-width="1.5"/>
+      <rect x="238" y="70" width="24" height="18" fill="var(--loss)"/>
+      <text x="270" y="35" class="cvd-svg-label">ombra sup. &ge; 50%</text>
+      <text x="270" y="80" class="cvd-svg-label">corpo &le; 30%</text>
+      <line x1="150" y1="130" x2="200" y2="130" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="160" y="128" class="cvd-svg-label" fill="var(--warn)">zero_gamma</text>
+    </svg>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Configurazione</th><th>N</th><th>Net %</th><th>Max DD %</th><th>Win Rate</th><th>PF</th><th>Sharpe</th></tr></thead>
+        <tbody>
+          <tr><td>Rifiuto dal basso + EMA (variante principale)</td><td class="num">119</td><td class="num up">+12.31%</td><td class="num down">-9.52%</td><td class="num">54.6%</td><td class="num">1.22</td><td class="num">1.27</td></tr>
+          <tr class="best-row"><td>Rottura dall'alto + EMA + forma candela</td><td class="num">32</td><td class="num up">+10.29%</td><td class="num down">-3.45%</td><td class="num">68.8%</td><td class="num">2.02</td><td class="num">4.71</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="margin-top:10px;">Senza EMA questa variante non ha edge (PF 1.02, Sharpe 0.10) &mdash; il contesto di trend resta indispensabile. Ho verificato anche un filtro aggiuntivo sul CVD (delta della singola candela &lt; 0): non migliora il risultato, perch&eacute; una candela full-body ribassista porta gi&agrave; quasi sempre un CVD in calo nella stessa candela &mdash; il filtro CVD qui &egrave; ridondante con la forma della candela, non aggiunge informazione. Campione piccolo (32 trade su 21/66 giorni) &mdash; trattare con cautela.</p>
+
+    <div class="chart-legend">
+      <div class="chart-legend-item" style="color:var(--warn)"><span class="sw-line"></span>zero_gamma</div>
+      <div class="chart-legend-item" style="color:var(--loss)"><span class="sw-line"></span>mneg_vol (target/TP)</div>
+      <div class="chart-legend-item" style="color:var(--ema)"><span class="sw-line" style="border-top-style:solid;"></span>EMA(50) RTH continua</div>
+      <div class="chart-legend-item" style="color:var(--text-dim)"><span class="sw-solid"></span>Entry / SL</div>
+    </div>
+    <p class="hint"><b>9 settembre 2026</b> &mdash; entry 16:30 (candela full body che rompe <code>zero_gamma</code> dall'alto), uscita 17:10. TP.</p>
+    <svg class="chart-svg" id="chart3" viewBox="0 0 820 380"></svg>
+  </div>
+
+  <div class="panel-card">
+    <div class="section-title">Cautele</div>
+    <ul>
+      <li>Configurazione finale: campione piccolo (33 trade su 66 giorni) &mdash; distribuito su 24 giorni distinti, ma resta un numero limitato per trarre conclusioni definitive.</li>
+      <li>Pattern scoperto ed esplorato sullo stesso campione su cui viene testato (in-sample) &mdash; da validare su nuovi dati prima di considerarlo robusto.</li>
+      <li>Un primo tentativo con EMA(50) resettata ogni giorno dava risultati sovrastimati (PF 1.45 invece di 1.22 sul baseline) &mdash; corretto usando un'EMA continua sulle sole candele RTH.</li>
+      <li>Nessun costo di commissioni/slippage modellato.</li>
+      <li>PF e Sharpe pi&ugrave; deboli della strategia "Options Flow" principale &mdash; da trattare come strategia satellite/complementare, non come sostituto.</li>
+    </ul>
+  </div>
+
+  <footer class="foot">Short Gamma &middot; resistenza a zero_gamma in trend ribassista &middot; dati SPX (Yahoo Finance) giugno-settembre 2026</footer>
+</div>
+
+<script>
+// ============ Equity curve: baseline / pre / post / entrambi ============
+const EQ_DATA = [{"i": 1, "date": "2026-06-08 16:05", "baseline": -11.44, "pre": 0.0, "post": -20.24, "both": 0.0, "variantB": 0.0}, {"i": 2, "date": "2026-06-08 17:35", "baseline": -14.47, "pre": 0.0, "post": -29.98, "both": 0.0, "variantB": 0.0}, {"i": 3, "date": "2026-06-08 18:00", "baseline": 7.79, "pre": 0.0, "post": -29.98, "both": 0.0, "variantB": 0.0}, {"i": 4, "date": "2026-06-08 18:45", "baseline": 7.79, "pre": 0.0, "post": -28.61, "both": 0.0, "variantB": 0.0}, {"i": 5, "date": "2026-06-08 20:30", "baseline": 19.33, "pre": 0.0, "post": -25.01, "both": 0.0, "variantB": 0.0}, {"i": 6, "date": "2026-06-09 19:50", "baseline": 9.76, "pre": -9.57, "post": -25.01, "both": 0.0, "variantB": 0.0}, {"i": 7, "date": "2026-06-10 20:00", "baseline": 38.69, "pre": 19.36, "post": -15.07, "both": 9.94, "variantB": 0.0}, {"i": 8, "date": "2026-06-11 15:45", "baseline": 33.18, "pre": 19.36, "post": -15.07, "both": 9.94, "variantB": 0.0}, {"i": 9, "date": "2026-06-11 16:15", "baseline": 9.38, "pre": 19.36, "post": -17.04, "both": 9.94, "variantB": 0.0}, {"i": 10, "date": "2026-06-11 16:20", "baseline": 7.41, "pre": 19.36, "post": -17.04, "both": 9.94, "variantB": 0.0}, {"i": 11, "date": "2026-06-11 16:35", "baseline": 4.97, "pre": 16.92, "post": -37.56, "both": -10.58, "variantB": 0.0}, {"i": 12, "date": "2026-06-11 17:15", "baseline": -15.7, "pre": -3.75, "post": -37.56, "both": -10.58, "variantB": 0.0}, {"i": 13, "date": "2026-06-11 18:30", "baseline": -15.7, "pre": -3.75, "post": -43.32, "both": -10.58, "variantB": 0.0}, {"i": 14, "date": "2026-06-11 18:50", "baseline": -37.04, "pre": -3.75, "post": -43.32, "both": -10.58, "variantB": 0.0}, {"i": 15, "date": "2026-06-16 16:00", "baseline": -29.38, "pre": -3.75, "post": -43.32, "both": -10.58, "variantB": 0.0}, {"i": 16, "date": "2026-06-16 18:00", "baseline": -15.79, "pre": 9.84, "post": -43.32, "both": -10.58, "variantB": 0.0}, {"i": 17, "date": "2026-06-16 18:05", "baseline": -15.79, "pre": 9.84, "post": -35.73, "both": -2.99, "variantB": 0.0}, {"i": 18, "date": "2026-06-17 15:35", "baseline": -30.05, "pre": 9.84, "post": -38.17, "both": -2.99, "variantB": 0.0}, {"i": 19, "date": "2026-06-17 15:55", "baseline": -30.05, "pre": 9.84, "post": -38.17, "both": -2.99, "variantB": -20.32}, {"i": 20, "date": "2026-06-17 16:05", "baseline": -43.41, "pre": 9.84, "post": -46.41, "both": -2.99, "variantB": -20.32}, {"i": 21, "date": "2026-06-17 16:35", "baseline": -32.66, "pre": 9.84, "post": -33.1, "both": -2.99, "variantB": -20.32}, {"i": 22, "date": "2026-06-17 17:30", "baseline": -16.48, "pre": 26.02, "post": -33.1, "both": -2.99, "variantB": -20.32}, {"i": 23, "date": "2026-06-17 17:40", "baseline": -16.48, "pre": 26.02, "post": -33.1, "both": -2.99, "variantB": -6.01}, {"i": 24, "date": "2026-06-17 17:45", "baseline": -16.48, "pre": 26.02, "post": -17.56, "both": -2.99, "variantB": -6.01}, {"i": 25, "date": "2026-06-17 19:50", "baseline": -1.88, "pre": 40.62, "post": -17.56, "both": -2.99, "variantB": -6.01}, {"i": 26, "date": "2026-06-17 20:40", "baseline": 9.1, "pre": 51.6, "post": -17.56, "both": -2.99, "variantB": -6.01}, {"i": 27, "date": "2026-06-18 17:30", "baseline": -2.26, "pre": 51.6, "post": -34.15, "both": -2.99, "variantB": -6.01}, {"i": 28, "date": "2026-06-18 20:35", "baseline": 0.09, "pre": 51.6, "post": -29.46, "both": -2.99, "variantB": -6.01}, {"i": 29, "date": "2026-06-22 18:55", "baseline": 8.18, "pre": 59.69, "post": -22.01, "both": 4.46, "variantB": -6.01}, {"i": 30, "date": "2026-06-22 19:20", "baseline": 15.68, "pre": 67.19, "post": -16.2, "both": 10.27, "variantB": -6.01}, {"i": 31, "date": "2026-06-22 19:45", "baseline": 22.24, "pre": 67.19, "post": -16.2, "both": 10.27, "variantB": -6.01}, {"i": 32, "date": "2026-06-22 19:50", "baseline": 22.24, "pre": 78.05, "post": -12.19, "both": 14.28, "variantB": -6.01}, {"i": 33, "date": "2026-06-23 16:50", "baseline": 44.35, "pre": 78.05, "post": 3.72, "both": 14.28, "variantB": -6.01}, {"i": 34, "date": "2026-06-23 18:00", "baseline": 44.35, "pre": 69.08, "post": 3.72, "both": 14.28, "variantB": -6.01}, {"i": 35, "date": "2026-06-23 19:00", "baseline": 44.35, "pre": 69.08, "post": 3.72, "both": 14.28, "variantB": -16.69}, {"i": 36, "date": "2026-06-23 19:50", "baseline": 44.35, "pre": 69.08, "post": 3.72, "both": 14.28, "variantB": -7.38}, {"i": 37, "date": "2026-06-24 16:05", "baseline": 32.49, "pre": 69.08, "post": -1.71, "both": 14.28, "variantB": -7.38}, {"i": 38, "date": "2026-06-25 16:05", "baseline": 31.92, "pre": 68.51, "post": -1.71, "both": 14.28, "variantB": -7.38}, {"i": 39, "date": "2026-06-25 17:30", "baseline": 52.51, "pre": 68.51, "post": 24.43, "both": 14.28, "variantB": -7.38}, {"i": 40, "date": "2026-06-25 20:15", "baseline": 48.24, "pre": 68.51, "post": 21.4, "both": 14.28, "variantB": -7.38}, {"i": 41, "date": "2026-06-25 20:50", "baseline": 55.82, "pre": 68.51, "post": 28.01, "both": 14.28, "variantB": -7.38}, {"i": 42, "date": "2026-06-26 15:35", "baseline": 40.45, "pre": 68.51, "post": 18.81, "both": 14.28, "variantB": -7.38}, {"i": 43, "date": "2026-06-26 19:50", "baseline": 59.05, "pre": 68.51, "post": 33.32, "both": 14.28, "variantB": -7.38}, {"i": 44, "date": "2026-07-01 15:40", "baseline": 42.8, "pre": 68.51, "post": 33.32, "both": 14.28, "variantB": -7.38}, {"i": 45, "date": "2026-07-01 15:45", "baseline": 42.8, "pre": 63.46, "post": 33.32, "both": 14.28, "variantB": -7.38}, {"i": 46, "date": "2026-07-01 20:00", "baseline": 46.69, "pre": 63.46, "post": 32.13, "both": 14.28, "variantB": -7.38}, {"i": 47, "date": "2026-07-01 20:10", "baseline": 46.69, "pre": 63.46, "post": 32.13, "both": 14.28, "variantB": -9.99}, {"i": 48, "date": "2026-07-02 16:35", "baseline": 58.58, "pre": 63.46, "post": 32.13, "both": 14.28, "variantB": -9.99}, {"i": 49, "date": "2026-07-02 20:45", "baseline": 74.86, "pre": 63.46, "post": 44.77, "both": 14.28, "variantB": -9.99}, {"i": 50, "date": "2026-07-07 15:40", "baseline": 103.12, "pre": 63.46, "post": 59.7, "both": 14.28, "variantB": -9.99}, {"i": 51, "date": "2026-07-07 17:50", "baseline": 94.27, "pre": 54.61, "post": 54.14, "both": 8.72, "variantB": -9.99}, {"i": 52, "date": "2026-07-07 20:50", "baseline": 97.98, "pre": 54.61, "post": 55.84, "both": 8.72, "variantB": -9.99}, {"i": 53, "date": "2026-07-08 16:10", "baseline": 97.98, "pre": 54.61, "post": 55.84, "both": 8.72, "variantB": -0.87}, {"i": 54, "date": "2026-07-08 16:20", "baseline": 112.16, "pre": 54.61, "post": 57.18, "both": 8.72, "variantB": -0.87}, {"i": 55, "date": "2026-07-08 16:30", "baseline": 112.16, "pre": 64.26, "post": 57.18, "both": 8.72, "variantB": -0.87}, {"i": 56, "date": "2026-07-08 18:15", "baseline": 99.53, "pre": 51.63, "post": 57.18, "both": 8.72, "variantB": -0.87}, {"i": 57, "date": "2026-07-10 16:35", "baseline": 103.53, "pre": 51.63, "post": 65.63, "both": 8.72, "variantB": -0.87}, {"i": 58, "date": "2026-07-13 15:55", "baseline": 101.29, "pre": 51.63, "post": 79.34, "both": 8.72, "variantB": -0.87}, {"i": 59, "date": "2026-07-13 16:20", "baseline": 115.0, "pre": 51.63, "post": 79.34, "both": 8.72, "variantB": -0.87}, {"i": 60, "date": "2026-07-13 16:30", "baseline": 115.0, "pre": 51.63, "post": 79.34, "both": 8.72, "variantB": 11.05}, {"i": 61, "date": "2026-07-13 16:45", "baseline": 125.0, "pre": 51.63, "post": 79.34, "both": 8.72, "variantB": 11.05}, {"i": 62, "date": "2026-07-13 16:50", "baseline": 125.0, "pre": 51.63, "post": 93.11, "both": 8.72, "variantB": 11.05}, {"i": 63, "date": "2026-07-13 17:05", "baseline": 125.0, "pre": 59.94, "post": 93.11, "both": 15.71, "variantB": 11.05}, {"i": 64, "date": "2026-07-14 16:20", "baseline": 113.55, "pre": 59.94, "post": 93.11, "both": 15.71, "variantB": 11.05}, {"i": 65, "date": "2026-07-14 16:25", "baseline": 113.55, "pre": 54.8, "post": 93.11, "both": 15.71, "variantB": 11.05}, {"i": 66, "date": "2026-07-14 18:05", "baseline": 101.71, "pre": 54.8, "post": 81.86, "both": 15.71, "variantB": 11.05}, {"i": 67, "date": "2026-07-16 15:50", "baseline": 83.6, "pre": 54.8, "post": 81.86, "both": 15.71, "variantB": 11.05}, {"i": 68, "date": "2026-07-16 18:55", "baseline": 97.77, "pre": 68.97, "post": 93.83, "both": 27.68, "variantB": 11.05}, {"i": 69, "date": "2026-07-16 19:30", "baseline": 97.77, "pre": 68.97, "post": 93.83, "both": 27.68, "variantB": 17.78}, {"i": 70, "date": "2026-07-17 15:40", "baseline": 76.85, "pre": 68.97, "post": 93.74, "both": 27.68, "variantB": 17.78}, {"i": 71, "date": "2026-07-17 16:55", "baseline": 76.85, "pre": 68.97, "post": 93.74, "both": 27.68, "variantB": 6.17}, {"i": 72, "date": "2026-07-17 17:00", "baseline": 56.26, "pre": 68.97, "post": 78.96, "both": 27.68, "variantB": 6.17}, {"i": 73, "date": "2026-07-17 19:45", "baseline": 73.0, "pre": 68.97, "post": 90.25, "both": 27.68, "variantB": 6.17}, {"i": 74, "date": "2026-07-20 17:15", "baseline": 62.21, "pre": 58.18, "post": 90.25, "both": 27.68, "variantB": 6.17}, {"i": 75, "date": "2026-07-20 18:45", "baseline": 79.27, "pre": 58.18, "post": 95.54, "both": 27.68, "variantB": 6.17}, {"i": 76, "date": "2026-07-20 20:00", "baseline": 92.88, "pre": 58.18, "post": 95.54, "both": 27.68, "variantB": 6.17}, {"i": 77, "date": "2026-07-20 20:05", "baseline": 92.88, "pre": 58.18, "post": 111.49, "both": 27.68, "variantB": 6.17}, {"i": 78, "date": "2026-07-20 20:15", "baseline": 92.88, "pre": 75.92, "post": 111.49, "both": 29.7, "variantB": 6.17}, {"i": 79, "date": "2026-07-22 16:35", "baseline": 82.24, "pre": 75.92, "post": 101.04, "both": 29.7, "variantB": 6.17}, {"i": 80, "date": "2026-07-22 20:00", "baseline": 83.5, "pre": 75.92, "post": 101.43, "both": 29.7, "variantB": 6.17}, {"i": 81, "date": "2026-07-22 20:30", "baseline": 83.5, "pre": 75.92, "post": 101.43, "both": 29.7, "variantB": 5.1}, {"i": 82, "date": "2026-07-23 15:55", "baseline": 104.91, "pre": 75.92, "post": 129.71, "both": 29.7, "variantB": 5.1}, {"i": 83, "date": "2026-07-23 16:40", "baseline": 104.91, "pre": 75.92, "post": 129.71, "both": 29.7, "variantB": 18.05}, {"i": 84, "date": "2026-07-23 18:10", "baseline": 123.53, "pre": 94.54, "post": 129.71, "both": 29.7, "variantB": 18.05}, {"i": 85, "date": "2026-07-23 18:20", "baseline": 123.53, "pre": 94.54, "post": 133.95, "both": 33.94, "variantB": 18.05}, {"i": 86, "date": "2026-07-23 18:45", "baseline": 123.53, "pre": 94.54, "post": 133.95, "both": 33.94, "variantB": 23.49}, {"i": 87, "date": "2026-07-24 16:00", "baseline": 102.51, "pre": 94.54, "post": 133.95, "both": 33.94, "variantB": 23.49}, {"i": 88, "date": "2026-07-24 20:05", "baseline": 107.08, "pre": 94.54, "post": 134.52, "both": 33.94, "variantB": 23.49}, {"i": 89, "date": "2026-07-27 18:25", "baseline": 108.09, "pre": 94.54, "post": 119.04, "both": 33.94, "variantB": 23.49}, {"i": 90, "date": "2026-07-27 18:30", "baseline": 108.09, "pre": 106.8, "post": 119.04, "both": 46.79, "variantB": 23.49}, {"i": 91, "date": "2026-07-27 20:05", "baseline": 108.09, "pre": 92.0, "post": 119.04, "both": 33.14, "variantB": 23.49}, {"i": 92, "date": "2026-07-28 15:50", "baseline": 111.08, "pre": 92.0, "post": 119.04, "both": 33.14, "variantB": 23.49}, {"i": 93, "date": "2026-07-28 16:00", "baseline": 117.41, "pre": 92.0, "post": 119.04, "both": 33.14, "variantB": 23.49}, {"i": 94, "date": "2026-07-28 16:10", "baseline": 94.91, "pre": 92.0, "post": 97.04, "both": 33.14, "variantB": 23.49}, {"i": 95, "date": "2026-07-28 16:25", "baseline": 94.91, "pre": 82.91, "post": 97.04, "both": 23.08, "variantB": 23.49}, {"i": 96, "date": "2026-07-28 16:30", "baseline": 94.91, "pre": 82.91, "post": 97.04, "both": 23.08, "variantB": 9.85}, {"i": 97, "date": "2026-07-28 20:15", "baseline": 82.8, "pre": 82.91, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 98, "date": "2026-07-29 19:00", "baseline": 70.59, "pre": 70.7, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 99, "date": "2026-07-29 19:40", "baseline": 59.24, "pre": 70.7, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 100, "date": "2026-07-30 15:40", "baseline": 58.33, "pre": 70.7, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 101, "date": "2026-07-30 17:40", "baseline": 48.36, "pre": 60.73, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 102, "date": "2026-07-31 17:35", "baseline": 39.1, "pre": 60.73, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 103, "date": "2026-08-05 20:00", "baseline": 44.74, "pre": 60.73, "post": 83.13, "both": 23.08, "variantB": 9.85}, {"i": 104, "date": "2026-08-05 20:15", "baseline": 44.74, "pre": 60.73, "post": 81.88, "both": 23.08, "variantB": 9.85}, {"i": 105, "date": "2026-08-05 20:25", "baseline": 44.74, "pre": 63.72, "post": 81.88, "both": 21.83, "variantB": 9.85}, {"i": 106, "date": "2026-08-06 15:40", "baseline": 39.52, "pre": 63.72, "post": 81.88, "both": 21.83, "variantB": 9.85}, {"i": 107, "date": "2026-08-06 16:25", "baseline": 39.52, "pre": 63.72, "post": 81.88, "both": 21.83, "variantB": 37.26}, {"i": 108, "date": "2026-08-06 16:30", "baseline": 71.57, "pre": 63.72, "post": 107.78, "both": 21.83, "variantB": 37.26}, {"i": 109, "date": "2026-08-06 16:55", "baseline": 71.57, "pre": 97.24, "post": 107.78, "both": 51.33, "variantB": 37.26}, {"i": 110, "date": "2026-08-06 20:00", "baseline": 65.08, "pre": 90.75, "post": 107.78, "both": 51.33, "variantB": 37.26}, {"i": 111, "date": "2026-08-06 20:05", "baseline": 65.08, "pre": 90.75, "post": 103.77, "both": 51.33, "variantB": 37.26}, {"i": 112, "date": "2026-08-07 18:30", "baseline": 64.04, "pre": 90.75, "post": 103.77, "both": 51.33, "variantB": 37.26}, {"i": 113, "date": "2026-08-07 19:25", "baseline": 64.04, "pre": 90.75, "post": 106.83, "both": 51.33, "variantB": 37.26}, {"i": 114, "date": "2026-08-10 19:10", "baseline": 69.12, "pre": 95.83, "post": 111.98, "both": 56.48, "variantB": 37.26}, {"i": 115, "date": "2026-08-10 20:40", "baseline": 65.99, "pre": 95.83, "post": 111.98, "both": 56.48, "variantB": 37.26}, {"i": 116, "date": "2026-08-10 20:50", "baseline": 65.99, "pre": 94.48, "post": 111.98, "both": 56.48, "variantB": 37.26}, {"i": 117, "date": "2026-08-11 15:55", "baseline": 95.55, "pre": 124.04, "post": 111.98, "both": 56.48, "variantB": 37.26}, {"i": 118, "date": "2026-08-14 20:40", "baseline": 97.75, "pre": 124.04, "post": 111.98, "both": 56.48, "variantB": 37.26}, {"i": 119, "date": "2026-08-14 20:50", "baseline": 97.75, "pre": 127.79, "post": 113.1, "both": 57.6, "variantB": 37.26}, {"i": 120, "date": "2026-08-17 15:45", "baseline": 108.36, "pre": 127.79, "post": 118.41, "both": 57.6, "variantB": 37.26}, {"i": 121, "date": "2026-08-17 15:55", "baseline": 108.36, "pre": 127.79, "post": 118.41, "both": 57.6, "variantB": 41.31}, {"i": 122, "date": "2026-08-17 17:00", "baseline": 114.05, "pre": 127.79, "post": 122.58, "both": 57.6, "variantB": 41.31}, {"i": 123, "date": "2026-08-17 17:10", "baseline": 114.05, "pre": 131.96, "post": 122.58, "both": 59.29, "variantB": 41.31}, {"i": 124, "date": "2026-08-17 17:30", "baseline": 114.05, "pre": 131.96, "post": 122.58, "both": 59.29, "variantB": 44.45}, {"i": 125, "date": "2026-08-17 17:45", "baseline": 116.07, "pre": 131.96, "post": 126.72, "both": 59.29, "variantB": 44.45}, {"i": 126, "date": "2026-08-17 18:40", "baseline": 116.08, "pre": 131.96, "post": 127.71, "both": 59.29, "variantB": 44.45}, {"i": 127, "date": "2026-08-18 15:50", "baseline": 121.29, "pre": 131.96, "post": 132.51, "both": 59.29, "variantB": 44.45}, {"i": 128, "date": "2026-08-18 16:10", "baseline": 121.88, "pre": 131.96, "post": 138.29, "both": 59.29, "variantB": 44.45}, {"i": 129, "date": "2026-08-18 16:15", "baseline": 127.66, "pre": 131.96, "post": 138.29, "both": 59.29, "variantB": 44.45}, {"i": 130, "date": "2026-08-18 16:25", "baseline": 127.66, "pre": 131.96, "post": 138.29, "both": 59.29, "variantB": 51.42}, {"i": 131, "date": "2026-08-18 16:30", "baseline": 127.66, "pre": 140.15, "post": 138.29, "both": 63.55, "variantB": 51.42}, {"i": 132, "date": "2026-08-18 17:45", "baseline": 131.63, "pre": 140.15, "post": 138.29, "both": 63.55, "variantB": 51.42}, {"i": 133, "date": "2026-08-18 17:50", "baseline": 131.63, "pre": 145.52, "post": 144.01, "both": 69.27, "variantB": 51.42}, {"i": 134, "date": "2026-08-18 18:25", "baseline": 131.63, "pre": 145.52, "post": 144.01, "both": 69.27, "variantB": 53.65}, {"i": 135, "date": "2026-08-18 20:15", "baseline": 135.74, "pre": 149.63, "post": 147.19, "both": 72.45, "variantB": 53.65}, {"i": 136, "date": "2026-08-19 20:00", "baseline": 146.35, "pre": 149.63, "post": 145.53, "both": 72.45, "variantB": 53.65}, {"i": 137, "date": "2026-08-19 20:30", "baseline": 149.89, "pre": 153.17, "post": 145.53, "both": 73.41, "variantB": 53.65}, {"i": 138, "date": "2026-08-20 15:55", "baseline": 136.33, "pre": 153.17, "post": 126.54, "both": 73.41, "variantB": 53.65}, {"i": 139, "date": "2026-08-20 16:25", "baseline": 136.33, "pre": 137.3, "post": 126.54, "both": 56.98, "variantB": 53.65}, {"i": 140, "date": "2026-08-20 17:05", "baseline": 136.33, "pre": 137.3, "post": 126.54, "both": 56.98, "variantB": 66.52}, {"i": 141, "date": "2026-08-20 17:10", "baseline": 147.4, "pre": 137.3, "post": 137.27, "both": 56.98, "variantB": 66.52}, {"i": 142, "date": "2026-08-20 18:35", "baseline": 159.33, "pre": 149.23, "post": 143.24, "both": 62.95, "variantB": 66.52}, {"i": 143, "date": "2026-08-20 18:45", "baseline": 159.33, "pre": 149.23, "post": 143.24, "both": 62.95, "variantB": 79.34}, {"i": 144, "date": "2026-08-21 15:55", "baseline": 145.57, "pre": 149.23, "post": 143.24, "both": 62.95, "variantB": 79.34}, {"i": 145, "date": "2026-08-21 19:35", "baseline": 141.22, "pre": 149.23, "post": 139.46, "both": 62.95, "variantB": 79.34}, {"i": 146, "date": "2026-08-21 20:45", "baseline": 141.22, "pre": 145.6, "post": 139.46, "both": 62.95, "variantB": 79.34}, {"i": 147, "date": "2026-08-24 15:40", "baseline": 114.9, "pre": 145.6, "post": 121.36, "both": 62.95, "variantB": 79.34}, {"i": 148, "date": "2026-08-24 16:20", "baseline": 114.9, "pre": 130.41, "post": 121.36, "both": 62.95, "variantB": 79.34}, {"i": 149, "date": "2026-08-24 17:00", "baseline": 114.9, "pre": 130.41, "post": 121.36, "both": 62.95, "variantB": 66.26}, {"i": 150, "date": "2026-08-24 19:20", "baseline": 114.9, "pre": 130.41, "post": 121.36, "both": 62.95, "variantB": 71.12}, {"i": 151, "date": "2026-08-24 20:00", "baseline": 102.85, "pre": 130.41, "post": 121.36, "both": 62.95, "variantB": 71.12}, {"i": 152, "date": "2026-08-24 20:05", "baseline": 102.85, "pre": 123.03, "post": 121.36, "both": 62.95, "variantB": 71.12}, {"i": 153, "date": "2026-08-25 17:05", "baseline": 90.14, "pre": 123.03, "post": 121.36, "both": 62.95, "variantB": 71.12}, {"i": 154, "date": "2026-08-25 19:10", "baseline": 87.8, "pre": 123.03, "post": 114.79, "both": 62.95, "variantB": 71.12}, {"i": 155, "date": "2026-08-25 20:00", "baseline": 87.8, "pre": 123.03, "post": 114.79, "both": 62.95, "variantB": 64.76}, {"i": 156, "date": "2026-08-26 16:35", "baseline": 98.83, "pre": 123.03, "post": 114.79, "both": 62.95, "variantB": 64.76}, {"i": 157, "date": "2026-08-26 16:40", "baseline": 98.83, "pre": 135.29, "post": 128.09, "both": 76.25, "variantB": 64.76}, {"i": 158, "date": "2026-08-26 19:10", "baseline": 86.89, "pre": 123.35, "post": 128.09, "both": 76.25, "variantB": 64.76}, {"i": 159, "date": "2026-08-27 20:15", "baseline": 90.3, "pre": 123.35, "post": 122.79, "both": 76.25, "variantB": 64.76}, {"i": 160, "date": "2026-08-27 20:45", "baseline": 90.3, "pre": 119.38, "post": 122.79, "both": 70.56, "variantB": 64.76}, {"i": 161, "date": "2026-08-28 16:15", "baseline": 77.05, "pre": 119.38, "post": 122.79, "both": 70.56, "variantB": 64.76}, {"i": 162, "date": "2026-08-31 15:45", "baseline": 86.48, "pre": 119.38, "post": 128.98, "both": 70.56, "variantB": 64.76}, {"i": 163, "date": "2026-08-31 16:00", "baseline": 86.48, "pre": 125.14, "post": 128.98, "both": 73.04, "variantB": 64.76}, {"i": 164, "date": "2026-08-31 16:35", "baseline": 84.48, "pre": 125.14, "post": 128.98, "both": 73.04, "variantB": 64.76}, {"i": 165, "date": "2026-08-31 16:40", "baseline": 84.48, "pre": 124.26, "post": 128.98, "both": 73.04, "variantB": 64.76}, {"i": 166, "date": "2026-08-31 16:45", "baseline": 84.48, "pre": 124.26, "post": 119.73, "both": 63.79, "variantB": 64.76}, {"i": 167, "date": "2026-08-31 17:05", "baseline": 84.48, "pre": 124.26, "post": 119.73, "both": 63.79, "variantB": 54.29}, {"i": 168, "date": "2026-08-31 20:35", "baseline": 84.48, "pre": 124.26, "post": 119.73, "both": 63.79, "variantB": 56.43}, {"i": 169, "date": "2026-09-01 15:40", "baseline": 74.89, "pre": 124.26, "post": 110.82, "both": 63.79, "variantB": 56.43}, {"i": 170, "date": "2026-09-01 17:05", "baseline": 74.89, "pre": 124.26, "post": 110.82, "both": 63.79, "variantB": 44.88}, {"i": 171, "date": "2026-09-01 17:10", "baseline": 64.3, "pre": 124.26, "post": 110.82, "both": 63.79, "variantB": 44.88}, {"i": 172, "date": "2026-09-01 18:15", "baseline": 64.3, "pre": 124.26, "post": 110.82, "both": 63.79, "variantB": 52.64}, {"i": 173, "date": "2026-09-02 20:45", "baseline": 64.17, "pre": 124.26, "post": 107.56, "both": 63.79, "variantB": 52.64}, {"i": 174, "date": "2026-09-04 16:05", "baseline": 76.43, "pre": 124.26, "post": 120.03, "both": 63.79, "variantB": 52.64}, {"i": 175, "date": "2026-09-04 18:05", "baseline": 83.07, "pre": 130.9, "post": 120.03, "both": 63.79, "variantB": 52.64}, {"i": 176, "date": "2026-09-04 19:10", "baseline": 83.07, "pre": 130.9, "post": 123.81, "both": 63.79, "variantB": 52.64}, {"i": 177, "date": "2026-09-08 15:55", "baseline": 93.98, "pre": 130.9, "post": 123.84, "both": 63.79, "variantB": 52.64}, {"i": 178, "date": "2026-09-08 16:00", "baseline": 93.98, "pre": 135.11, "post": 123.84, "both": 63.82, "variantB": 52.64}, {"i": 179, "date": "2026-09-08 16:40", "baseline": 83.4, "pre": 124.53, "post": 123.84, "both": 63.82, "variantB": 52.64}, {"i": 180, "date": "2026-09-08 18:05", "baseline": 83.4, "pre": 124.53, "post": 123.84, "both": 63.82, "variantB": 62.5}, {"i": 181, "date": "2026-09-08 18:20", "baseline": 93.73, "pre": 124.53, "post": 123.84, "both": 63.82, "variantB": 62.5}, {"i": 182, "date": "2026-09-08 18:30", "baseline": 93.73, "pre": 124.53, "post": 129.43, "both": 63.82, "variantB": 62.5}, {"i": 183, "date": "2026-09-08 18:35", "baseline": 93.73, "pre": 129.61, "post": 129.43, "both": 69.41, "variantB": 62.5}, {"i": 184, "date": "2026-09-09 15:40", "baseline": 95.85, "pre": 129.61, "post": 133.56, "both": 69.41, "variantB": 62.5}, {"i": 185, "date": "2026-09-09 15:50", "baseline": 99.06, "pre": 129.61, "post": 133.56, "both": 69.41, "variantB": 62.5}, {"i": 186, "date": "2026-09-09 16:05", "baseline": 99.06, "pre": 135.9, "post": 133.56, "both": 69.41, "variantB": 62.5}, {"i": 187, "date": "2026-09-09 16:25", "baseline": 123.41, "pre": 135.9, "post": 133.56, "both": 69.41, "variantB": 62.5}, {"i": 188, "date": "2026-09-09 16:30", "baseline": 123.41, "pre": 135.9, "post": 133.56, "both": 69.41, "variantB": 81.47}, {"i": 189, "date": "2026-09-09 16:35", "baseline": 123.41, "pre": 146.15, "post": 133.56, "both": 69.41, "variantB": 81.47}, {"i": 190, "date": "2026-09-09 16:45", "baseline": 123.41, "pre": 146.15, "post": 145.5, "both": 69.41, "variantB": 81.47}, {"i": 191, "date": "2026-09-09 16:50", "baseline": 123.41, "pre": 146.15, "post": 145.5, "both": 81.35, "variantB": 81.47}, {"i": 192, "date": "2026-09-09 18:50", "baseline": 123.09, "pre": 146.15, "post": 144.84, "both": 81.35, "variantB": 81.47}, {"i": 193, "date": "2026-09-09 18:55", "baseline": 123.09, "pre": 145.17, "post": 144.84, "both": 78.15, "variantB": 81.47}, {"i": 194, "date": "2026-09-09 19:15", "baseline": 123.09, "pre": 145.17, "post": 144.84, "both": 78.15, "variantB": 83.03}, {"i": 195, "date": "2026-09-10 17:50", "baseline": 123.09, "pre": 145.17, "post": 144.84, "both": 78.15, "variantB": 92.9}, {"i": 196, "date": "2026-09-10 19:20", "baseline": 123.09, "pre": 145.17, "post": 144.84, "both": 78.15, "variantB": 102.91}];
+const EQ_SERIES = [
+  { key: 'baseline', label: 'Solo trend + tocco', varName: '--series-a' },
+  { key: 'pre',      label: '+ pre-filtro CVD/NGV', varName: '--series-b' },
+  { key: 'post',     label: '+ conferma NGV post-tocco', varName: '--series-c' },
+  { key: 'both',     label: '+ entrambi (finale)', varName: '--series-d' },
+  { key: 'variantB', label: 'Variante B (rottura dall\'alto)', varName: '--series-e' },
+];
+
+function renderEqChart(){
+  const data = EQ_DATA;
+  const W = 820, H = 320;
+  const padL = 50, padR = 46, padT = 14, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = data.length;
+
+  document.getElementById('eq-legend').innerHTML = EQ_SERIES.map(s =>
+    `<div class="eq-legend-item"><span class="eq-swatch" style="background:var(${s.varName})"></span>${s.label}</div>`
+  ).join('');
+
+  const allVals = data.flatMap(d => EQ_SERIES.map(s => d[s.key]));
+  const yMin = Math.min(0, ...allVals);
+  const yMax = Math.max(...allVals);
+  const yPad = (yMax - yMin) * 0.08 || 10;
+  const y0 = yMin - yPad, y1 = yMax + yPad;
+
+  function xScale(i){ return padL + (n === 1 ? 0 : (i / (n - 1)) * plotW); }
+  function yScale(v){ return padT + plotH - ((v - y0) / (y1 - y0)) * plotH; }
+  function pathFor(key){
+    return data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i).toFixed(2)} ${yScale(d[key]).toFixed(2)}`).join(' ');
+  }
+
+  const svg = document.getElementById('eq-chart');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  let html = '';
+  for (let s = 0; s <= 5; s++){
+    const v = y0 + (s / 5) * (y1 - y0);
+    const yy = yScale(v);
+    html += `<line class="eq-gridline" x1="${padL}" x2="${W - padR}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}"/>`;
+    html += `<text class="eq-axis-label" x="${padL - 8}" y="${(yy + 3).toFixed(2)}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  html += `<line class="eq-baseline" x1="${padL}" x2="${W - padR}" y1="${yScale(0).toFixed(2)}" y2="${yScale(0).toFixed(2)}"/>`;
+
+  const tickIdx = [0, Math.floor((n-1)/2), n-1];
+  tickIdx.forEach(i => {
+    const xx = xScale(i);
+    html += `<text class="eq-axis-label" x="${xx.toFixed(2)}" y="${H - 6}" text-anchor="middle">#${i+1} &middot; ${data[i].date.slice(0,10)}</text>`;
+  });
+
+  EQ_SERIES.forEach(s => { html += `<path class="eq-line" d="${pathFor(s.key)}" stroke="var(${s.varName})"/>`; });
+
+  const last = data[n-1];
+  EQ_SERIES.forEach(s => {
+    html += `<text class="eq-final-label" x="${(W - padR + 4)}" y="${yScale(last[s.key]).toFixed(2)}" fill="var(${s.varName})">${last[s.key].toFixed(0)}</text>`;
+  });
+
+  html += `<line class="eq-crosshair" id="eq-crosshair" y1="${padT}" y2="${padT + plotH}"/>`;
+  EQ_SERIES.forEach(s => { html += `<circle class="eq-dot" id="eq-dot-${s.key}" r="4" fill="var(${s.varName})"/>`; });
+  html += `<rect id="eq-hitarea" x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+
+  svg.innerHTML = html;
+
+  const tooltip = document.getElementById('eq-tooltip');
+  const hit = document.getElementById('eq-hitarea');
+  const crosshair = document.getElementById('eq-crosshair');
+  const dots = {};
+  EQ_SERIES.forEach(s => { dots[s.key] = document.getElementById(`eq-dot-${s.key}`); });
+
+  function showAt(i){
+    i = Math.max(0, Math.min(n - 1, i));
+    const d = data[i];
+    const xx = xScale(i);
+    crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx);
+    crosshair.style.opacity = 1;
+    EQ_SERIES.forEach(s => {
+      dots[s.key].setAttribute('cx', xx);
+      dots[s.key].setAttribute('cy', yScale(d[s.key]));
+      dots[s.key].style.opacity = 1;
+    });
+    const wrapRect = svg.getBoundingClientRect();
+    const scaleX = wrapRect.width / W, scaleY = wrapRect.height / H;
+    tooltip.innerHTML = `<div class="date">Trade #${d.i} &middot; ${d.date}</div>` +
+      EQ_SERIES.map(s => `<div class="row"><span>${s.label}</span><span>${d[s.key].toFixed(1)}</span></div>`).join('');
+    tooltip.style.opacity = 1;
+    let left = xx * scaleX + 14;
+    if (left + 190 > wrapRect.width) left = xx * scaleX - 204;
+    tooltip.style.left = left + 'px';
+    const topVal = Math.max(...EQ_SERIES.map(s => d[s.key]));
+    tooltip.style.top = (yScale(topVal) * scaleY - 10) + 'px';
+  }
+
+  hit.onmousemove = (e) => {
+    const rect = svg.getBoundingClientRect();
+    const relX = (e.clientX - rect.left) / rect.width * W;
+    const i = Math.round((relX - padL) / plotW * (n - 1));
+    showAt(i);
+  };
+  hit.onmouseleave = () => {
+    tooltip.style.opacity = 0;
+    crosshair.style.opacity = 0;
+    Object.values(dots).forEach(d => d.style.opacity = 0);
+  };
+}
+renderEqChart();
+
+// ============ Candlestick reference charts (casi reali) ============
+function renderCandleChart(svgId, data){
+  const W = 820, H = 380;
+  const padL = 54, padR = 110, padT = 16, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const candles = data.candles;
+  const n = candles.length;
+
+  const touchIdx = candles.findIndex(c => c.t === data.touch_dt);
+  const entryIdx = candles.findIndex(c => c.t === data.entry_dt);
+  const exitIdx = candles.findIndex(c => c.t === data.exit_dt);
+
+  const allLevels = [data.zg, data.mneg, data.entry, data.sl].concat(candles.map(c => c.ema));
+  const allPrices = candles.flatMap(c => [c.h, c.l]).concat(allLevels);
+  const yMin = Math.min(...allPrices), yMax = Math.max(...allPrices);
+  const yPad = (yMax - yMin) * 0.06;
+  const y0 = yMin - yPad, y1 = yMax + yPad;
+
+  const slot = plotW / n;
+  const bodyW = Math.max(2, slot * 0.6);
+  function xCenter(i){ return padL + slot * (i + 0.5); }
+  function yScale(v){ return padT + plotH - ((v - y0) / (y1 - y0)) * plotH; }
+
+  let html = '';
+  // vera posizione short come su TradingView: rettangolo rosso = zona di rischio
+  // (entry -> SL, sopra l'entry), rettangolo verde = zona di profitto (entry -> TP, sotto l'entry)
+  if (entryIdx >= 0 && exitIdx >= entryIdx){
+    const x0 = xCenter(entryIdx) - slot/2, x1 = xCenter(exitIdx) + slot/2;
+    const yEntry = yScale(data.entry), ySl = yScale(data.sl), yTp = yScale(data.tp);
+    html += `<rect x="${x0.toFixed(2)}" y="${ySl.toFixed(2)}" width="${(x1-x0).toFixed(2)}" height="${(yEntry-ySl).toFixed(2)}" fill="var(--loss-dim)"/>`;
+    html += `<rect x="${x0.toFixed(2)}" y="${yEntry.toFixed(2)}" width="${(x1-x0).toFixed(2)}" height="${(yTp-yEntry).toFixed(2)}" fill="var(--gain-dim)"/>`;
+  }
+  for (let s = 0; s <= 6; s++){
+    const v = y0 + (s/6)*(y1-y0);
+    const yy = yScale(v);
+    html += `<line class="gridline" x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}"/>`;
+    html += `<text class="axis-label" x="${padL-6}" y="${(yy+3).toFixed(2)}" text-anchor="end">${v.toFixed(1)}</text>`;
+  }
+  [0, Math.floor((n-1)/2), n-1].forEach(i => {
+    html += `<text class="axis-label" x="${xCenter(i).toFixed(2)}" y="${H-6}" text-anchor="middle">${candles[i].t}</text>`;
+  });
+  const emaPath = candles.map((c,i) => `${i===0?'M':'L'} ${xCenter(i).toFixed(2)} ${yScale(c.ema).toFixed(2)}`).join(' ');
+  html += `<path d="${emaPath}" fill="none" stroke="var(--ema)" stroke-width="2"/>`;
+  [{v:data.zg, color:'var(--warn)', label:'zero_gamma'}, {v:data.mneg, color:'var(--loss)', label:'mneg_vol (TP)'}].forEach(l => {
+    const yy = yScale(l.v);
+    html += `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}" stroke="${l.color}" stroke-width="1.5" stroke-dasharray="6,3"/>`;
+  });
+  [{v:data.entry, color:'var(--text-dim)'}, {v:data.sl, color:'var(--loss)'}].forEach(l => {
+    const yy = yScale(l.v);
+    html += `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(2)}" y2="${yy.toFixed(2)}" stroke="${l.color}" stroke-width="1" opacity="0.55"/>`;
+  });
+  if (touchIdx >= 0){
+    const tx = xCenter(touchIdx), ty = yScale(data.zg);
+    html += `<circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5" fill="none" stroke="var(--warn)" stroke-width="2"/>`;
+    html += `<text class="axis-label" x="${tx.toFixed(2)}" y="${(ty-10).toFixed(2)}" text-anchor="middle" fill="var(--warn)">tocco</text>`;
+  }
+  if (entryIdx >= 0){
+    const ex = xCenter(entryIdx);
+    html += `<line x1="${ex.toFixed(2)}" x2="${ex.toFixed(2)}" y1="${padT}" y2="${padT+plotH}" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="2,3" opacity="0.7"/>`;
+    const ey = yScale(data.entry);
+    html += `<path d="M ${(ex-7).toFixed(2)} ${(ey-12).toFixed(2)} L ${(ex+7).toFixed(2)} ${(ey-12).toFixed(2)} L ${ex.toFixed(2)} ${(ey-2).toFixed(2)} Z" fill="var(--loss)" stroke="var(--panel)" stroke-width="1"/>`;
+  }
+  candles.forEach((c,i) => {
+    const xc = xCenter(i);
+    const up = c.c >= c.o;
+    const color = up ? 'var(--gain)' : 'var(--loss)';
+    const yH = yScale(c.h), yL = yScale(c.l), yO = yScale(c.o), yC = yScale(c.c);
+    const top = Math.min(yO,yC), bot = Math.max(yO,yC);
+    html += `<line x1="${xc.toFixed(2)}" x2="${xc.toFixed(2)}" y1="${yH.toFixed(2)}" y2="${yL.toFixed(2)}" stroke="${color}" stroke-width="1"/>`;
+    html += `<rect x="${(xc-bodyW/2).toFixed(2)}" y="${top.toFixed(2)}" width="${bodyW.toFixed(2)}" height="${Math.max(1,bot-top).toFixed(2)}" fill="${color}"/>`;
+  });
+  const labels = [
+    {y: yScale(data.zg), text: `zero_gamma ${data.zg.toFixed(2)}`, color:'var(--warn)'},
+    {y: yScale(data.mneg), text: `mneg_vol (TP) ${data.mneg.toFixed(2)}`, color:'var(--loss)'},
+    {y: yScale(data.entry), text: `Entry ${data.entry.toFixed(2)}`, color:'var(--text-dim)'},
+    {y: yScale(data.sl), text: `SL ${data.sl.toFixed(2)}`, color:'var(--loss)'},
+  ].sort((a,b)=>a.y-b.y);
+  for (let i=1;i<labels.length;i++){
+    if (labels[i].y - labels[i-1].y < 13) labels[i].y = labels[i-1].y + 13;
+  }
+  labels.forEach(l => { html += `<text class="level-label" x="${W-padR+6}" y="${(l.y+3).toFixed(2)}" fill="${l.color}">${l.text}</text>`; });
+
+  document.getElementById(svgId).innerHTML = html;
+}
+
+const CHART1 = {"touch_dt": "16:55", "entry_dt": "17:05", "exit_dt": "18:15", "zg": 7729.0, "mneg": 7700.0, "entry": 7729.5, "sl": 7739.0, "tp": 7700.0, "candles": [{"t": "15:45", "o": 7729.3, "h": 7738.98, "l": 7729.11, "c": 7737.68, "ema": 7739.26}, {"t": "15:50", "o": 7737.48, "h": 7738.85, "l": 7732.13, "c": 7732.62, "ema": 7739.0}, {"t": "15:55", "o": 7733.12, "h": 7736.51, "l": 7729.51, "c": 7732.01, "ema": 7738.72}, {"t": "16:00", "o": 7731.67, "h": 7737.03, "l": 7730.87, "c": 7735.19, "ema": 7738.58}, {"t": "16:05", "o": 7735.36, "h": 7739.52, "l": 7733.54, "c": 7738.51, "ema": 7738.58}, {"t": "16:10", "o": 7738.66, "h": 7742.26, "l": 7738.66, "c": 7739.5, "ema": 7738.62}, {"t": "16:15", "o": 7739.58, "h": 7742.81, "l": 7736.02, "c": 7741.35, "ema": 7738.72}, {"t": "16:20", "o": 7741.28, "h": 7742.85, "l": 7736.0, "c": 7736.11, "ema": 7738.62}, {"t": "16:25", "o": 7736.22, "h": 7736.87, "l": 7725.04, "c": 7727.41, "ema": 7738.18}, {"t": "16:30", "o": 7727.98, "h": 7732.55, "l": 7726.47, "c": 7732.05, "ema": 7737.94}, {"t": "16:35", "o": 7731.99, "h": 7733.49, "l": 7721.58, "c": 7721.58, "ema": 7737.3}, {"t": "16:40", "o": 7721.49, "h": 7731.06, "l": 7720.94, "c": 7725.9, "ema": 7736.85}, {"t": "16:45", "o": 7725.8, "h": 7725.89, "l": 7720.19, "c": 7720.73, "ema": 7736.22}, {"t": "16:50", "o": 7720.64, "h": 7728.75, "l": 7719.54, "c": 7728.75, "ema": 7735.93}, {"t": "16:55", "o": 7728.89, "h": 7734.4, "l": 7727.51, "c": 7733.52, "ema": 7735.83}, {"t": "17:00", "o": 7733.62, "h": 7735.65, "l": 7724.79, "c": 7726.49, "ema": 7735.47}, {"t": "17:05", "o": 7726.33, "h": 7731.95, "l": 7726.33, "c": 7729.5, "ema": 7735.23}, {"t": "17:10", "o": 7729.54, "h": 7730.96, "l": 7723.08, "c": 7723.08, "ema": 7734.76}, {"t": "17:15", "o": 7723.07, "h": 7724.74, "l": 7713.86, "c": 7714.01, "ema": 7733.94}, {"t": "17:20", "o": 7713.81, "h": 7715.94, "l": 7709.9, "c": 7713.47, "ema": 7733.14}, {"t": "17:25", "o": 7713.13, "h": 7716.6, "l": 7711.02, "c": 7715.63, "ema": 7732.45}, {"t": "17:30", "o": 7716.1, "h": 7718.21, "l": 7709.38, "c": 7709.59, "ema": 7731.56}, {"t": "17:35", "o": 7709.4, "h": 7712.89, "l": 7706.92, "c": 7711.24, "ema": 7730.76}, {"t": "17:40", "o": 7711.0, "h": 7712.87, "l": 7706.72, "c": 7706.84, "ema": 7729.82}, {"t": "17:45", "o": 7706.71, "h": 7719.06, "l": 7706.41, "c": 7715.85, "ema": 7729.27}, {"t": "17:50", "o": 7716.02, "h": 7721.11, "l": 7705.11, "c": 7705.57, "ema": 7728.34}, {"t": "17:55", "o": 7705.54, "h": 7709.16, "l": 7703.62, "c": 7704.63, "ema": 7727.41}, {"t": "18:00", "o": 7704.79, "h": 7706.21, "l": 7701.39, "c": 7703.68, "ema": 7726.48}, {"t": "18:05", "o": 7703.73, "h": 7708.54, "l": 7703.23, "c": 7707.38, "ema": 7725.73}, {"t": "18:10", "o": 7707.48, "h": 7709.23, "l": 7701.64, "c": 7702.97, "ema": 7724.84}, {"t": "18:15", "o": 7702.91, "h": 7706.42, "l": 7698.15, "c": 7705.8, "ema": 7724.1}, {"t": "18:20", "o": 7705.73, "h": 7706.37, "l": 7702.2, "c": 7705.99, "ema": 7723.39}, {"t": "18:25", "o": 7706.38, "h": 7707.88, "l": 7703.66, "c": 7705.75, "ema": 7722.69}, {"t": "18:30", "o": 7705.73, "h": 7711.42, "l": 7705.31, "c": 7706.53, "ema": 7722.06}, {"t": "18:35", "o": 7706.56, "h": 7712.15, "l": 7705.53, "c": 7712.04, "ema": 7721.67}]};
+const CHART2 = {"touch_dt": "16:40", "entry_dt": "16:45", "exit_dt": "18:35", "zg": 7673.0, "mneg": 7660.0, "entry": 7673.3, "sl": 7683.0, "tp": 7660.0, "candles": [{"t": "15:35", "o": 7674.9, "h": 7676.84, "l": 7666.66, "c": 7673.83, "ema": 7670.53}, {"t": "15:40", "o": 7673.42, "h": 7683.69, "l": 7672.7, "c": 7681.99, "ema": 7670.98}, {"t": "15:45", "o": 7682.12, "h": 7685.64, "l": 7678.2, "c": 7678.2, "ema": 7671.26}, {"t": "15:50", "o": 7678.05, "h": 7684.65, "l": 7674.89, "c": 7684.65, "ema": 7671.79}, {"t": "15:55", "o": 7685.01, "h": 7686.98, "l": 7683.38, "c": 7686.94, "ema": 7672.38}, {"t": "16:00", "o": 7688.36, "h": 7688.36, "l": 7685.13, "c": 7687.56, "ema": 7672.97}, {"t": "16:05", "o": 7687.5, "h": 7687.71, "l": 7683.45, "c": 7684.41, "ema": 7673.42}, {"t": "16:10", "o": 7684.48, "h": 7684.72, "l": 7679.63, "c": 7679.82, "ema": 7673.67}, {"t": "16:15", "o": 7679.85, "h": 7681.56, "l": 7677.39, "c": 7677.97, "ema": 7673.84}, {"t": "16:20", "o": 7678.09, "h": 7678.92, "l": 7672.53, "c": 7672.61, "ema": 7673.79}, {"t": "16:25", "o": 7672.54, "h": 7672.85, "l": 7666.32, "c": 7669.45, "ema": 7673.62}, {"t": "16:30", "o": 7669.12, "h": 7670.8, "l": 7667.59, "c": 7669.63, "ema": 7673.47}, {"t": "16:35", "o": 7669.58, "h": 7674.56, "l": 7668.72, "c": 7671.03, "ema": 7673.37}, {"t": "16:40", "o": 7670.82, "h": 7673.48, "l": 7669.92, "c": 7672.26, "ema": 7673.33}, {"t": "16:45", "o": 7672.15, "h": 7673.32, "l": 7669.0, "c": 7673.3, "ema": 7673.33}, {"t": "16:50", "o": 7673.37, "h": 7677.47, "l": 7673.37, "c": 7674.59, "ema": 7673.38}, {"t": "16:55", "o": 7674.52, "h": 7677.0, "l": 7673.91, "c": 7676.74, "ema": 7673.51}, {"t": "17:00", "o": 7676.64, "h": 7682.21, "l": 7676.42, "c": 7679.61, "ema": 7673.75}, {"t": "17:05", "o": 7679.74, "h": 7682.55, "l": 7679.74, "c": 7681.73, "ema": 7674.06}, {"t": "17:10", "o": 7681.82, "h": 7682.33, "l": 7679.17, "c": 7680.55, "ema": 7674.32}, {"t": "17:15", "o": 7680.53, "h": 7680.62, "l": 7673.4, "c": 7675.13, "ema": 7674.35}, {"t": "17:20", "o": 7675.13, "h": 7677.75, "l": 7675.06, "c": 7675.69, "ema": 7674.4}, {"t": "17:25", "o": 7675.55, "h": 7678.3, "l": 7675.0, "c": 7676.61, "ema": 7674.49}, {"t": "17:30", "o": 7676.52, "h": 7676.76, "l": 7670.06, "c": 7670.37, "ema": 7674.33}, {"t": "17:35", "o": 7670.39, "h": 7673.09, "l": 7670.39, "c": 7672.63, "ema": 7674.26}, {"t": "17:40", "o": 7672.62, "h": 7679.02, "l": 7672.47, "c": 7678.46, "ema": 7674.42}, {"t": "17:45", "o": 7678.38, "h": 7680.94, "l": 7677.8, "c": 7680.94, "ema": 7674.68}, {"t": "17:50", "o": 7680.91, "h": 7681.04, "l": 7671.63, "c": 7671.96, "ema": 7674.57}, {"t": "17:55", "o": 7671.95, "h": 7675.42, "l": 7670.99, "c": 7671.07, "ema": 7674.43}, {"t": "18:00", "o": 7671.29, "h": 7671.39, "l": 7666.76, "c": 7670.12, "ema": 7674.27}, {"t": "18:05", "o": 7670.17, "h": 7672.77, "l": 7668.86, "c": 7670.04, "ema": 7674.1}, {"t": "18:10", "o": 7669.92, "h": 7671.01, "l": 7668.04, "c": 7668.43, "ema": 7673.88}, {"t": "18:15", "o": 7668.32, "h": 7669.03, "l": 7666.5, "c": 7668.05, "ema": 7673.65}, {"t": "18:20", "o": 7668.01, "h": 7669.01, "l": 7666.86, "c": 7667.54, "ema": 7673.41}, {"t": "18:25", "o": 7667.55, "h": 7667.71, "l": 7665.59, "c": 7665.64, "ema": 7673.1}, {"t": "18:30", "o": 7665.76, "h": 7667.08, "l": 7665.41, "c": 7666.7, "ema": 7672.85}, {"t": "18:35", "o": 7666.62, "h": 7666.62, "l": 7659.92, "c": 7660.05, "ema": 7672.35}, {"t": "18:40", "o": 7659.85, "h": 7661.98, "l": 7657.41, "c": 7657.94, "ema": 7671.79}, {"t": "18:45", "o": 7657.99, "h": 7661.01, "l": 7657.63, "c": 7658.37, "ema": 7671.26}, {"t": "18:50", "o": 7658.33, "h": 7660.57, "l": 7657.95, "c": 7659.5, "ema": 7670.8}, {"t": "18:55", "o": 7659.48, "h": 7666.06, "l": 7659.42, "c": 7665.1, "ema": 7670.58}]};
+
+renderCandleChart('chart1', CHART1);
+renderCandleChart('chart2', CHART2);
+
+const CHART3 = {"entry_dt": "16:30", "exit_dt": "17:10", "zg": 7652.0, "mneg": 7630.0, "entry": 7648.97, "sl": 7662.0, "tp": 7630.0, "candles": [{"t": "15:35", "o": 7654.62, "h": 7656.27, "l": 7650.53, "c": 7652.62, "ema": 7686.18}, {"t": "15:40", "o": 7652.8, "h": 7654.94, "l": 7648.91, "c": 7651.12, "ema": 7684.81}, {"t": "15:45", "o": 7650.68, "h": 7655.92, "l": 7649.57, "c": 7653.13, "ema": 7683.57}, {"t": "15:50", "o": 7653.02, "h": 7654.36, "l": 7648.56, "c": 7652.21, "ema": 7682.34}, {"t": "15:55", "o": 7652.24, "h": 7656.22, "l": 7651.6, "c": 7656.22, "ema": 7681.31}, {"t": "16:00", "o": 7654.61, "h": 7656.47, "l": 7649.13, "c": 7653.08, "ema": 7680.21}, {"t": "16:05", "o": 7653.21, "h": 7655.99, "l": 7652.7, "c": 7655.29, "ema": 7679.23}, {"t": "16:10", "o": 7655.21, "h": 7655.68, "l": 7650.52, "c": 7653.43, "ema": 7678.22}, {"t": "16:15", "o": 7653.37, "h": 7653.37, "l": 7642.87, "c": 7644.29, "ema": 7676.89}, {"t": "16:20", "o": 7644.54, "h": 7645.48, "l": 7640.7, "c": 7640.94, "ema": 7675.48}, {"t": "16:25", "o": 7640.07, "h": 7655.19, "l": 7640.01, "c": 7654.35, "ema": 7674.65}, {"t": "16:30", "o": 7654.42, "h": 7654.66, "l": 7648.84, "c": 7648.97, "ema": 7673.64}, {"t": "16:35", "o": 7649.22, "h": 7652.26, "l": 7646.98, "c": 7650.25, "ema": 7672.72}, {"t": "16:40", "o": 7650.27, "h": 7652.6, "l": 7649.25, "c": 7651.95, "ema": 7671.91}, {"t": "16:45", "o": 7652.15, "h": 7652.15, "l": 7648.85, "c": 7651.98, "ema": 7671.13}, {"t": "16:50", "o": 7651.9, "h": 7653.57, "l": 7650.39, "c": 7650.93, "ema": 7670.34}, {"t": "16:55", "o": 7651.06, "h": 7653.43, "l": 7649.11, "c": 7651.94, "ema": 7669.61}, {"t": "17:00", "o": 7652.08, "h": 7658.21, "l": 7641.79, "c": 7642.98, "ema": 7668.57}, {"t": "17:05", "o": 7642.92, "h": 7644.29, "l": 7635.96, "c": 7636.29, "ema": 7667.3}, {"t": "17:10", "o": 7636.42, "h": 7636.73, "l": 7628.52, "c": 7630.75, "ema": 7665.87}, {"t": "17:15", "o": 7630.7, "h": 7635.79, "l": 7629.59, "c": 7635.05, "ema": 7664.66}, {"t": "17:20", "o": 7634.96, "h": 7635.72, "l": 7624.16, "c": 7624.85, "ema": 7663.1}, {"t": "17:25", "o": 7624.93, "h": 7629.6, "l": 7624.21, "c": 7629.6, "ema": 7661.79}, {"t": "17:30", "o": 7629.66, "h": 7635.11, "l": 7629.58, "c": 7635.03, "ema": 7660.74}]};
+renderCandleChart('chart3', CHART3);
+</script>
+
+</body>
+</html>
