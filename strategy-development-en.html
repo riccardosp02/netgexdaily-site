@@ -101,18 +101,18 @@
 
     <div style="width:100%; border:1px solid var(--line); padding:20px 22px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
       <div>
-        <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX options gamma exposure</div>
-        <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">Options Flow <span style="font-family:var(--mono); font-size:11px; color:var(--ink-soft); font-weight:400;">(IT only)</span></h3>
-        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Fade strategy on gamma exposure levels (mpos_vol/mneg_vol), with a confirmation filter on CVD and net gamma exposure. Long and short, Yahoo Finance data, June–September 2026. Report currently available in Italian only.</p>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX gamma exposure · IS/OOS</div>
+        <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">SPX Gamma Strategy <span style="font-family:var(--mono); font-size:11px; color:var(--ink-soft); font-weight:400;">(IT only)</span></h3>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Two ways to trade the same gamma exposure level (mneg/mpos): immediate rejection on touch (long and short) or a break with a later reclaim (long only). Validated in-sample/out-of-sample, June–September 2026. Report currently available in Italian only.</p>
       </div>
-      <a class="btn primary" href="strategy-options-flow.html" style="white-space:nowrap;">Open report →</a>
+      <a class="btn primary" href="strategy-spx-gamma.html" style="white-space:nowrap;">Open report →</a>
     </div>
 
     <div style="width:100%; border:1px solid var(--line); padding:20px 22px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
       <div>
         <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX gamma exposure · short only</div>
         <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">Short Gamma <span style="font-family:var(--mono); font-size:11px; color:var(--ink-soft); font-weight:400;">(IT only)</span></h3>
-        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Independent from Options Flow: uses the zero gamma level as resistance once the market is already in a downtrend, rather than fading a level. Short only, SPX 5-min Yahoo Finance data, June–September 2026. Report currently available in Italian only.</p>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Independent from SPX Gamma Strategy: uses the zero gamma level as resistance once the market is already in a downtrend, rather than fading a level. Short only, SPX 5-min Yahoo Finance data, June–September 2026. Report currently available in Italian only.</p>
       </div>
       <a class="btn primary" href="strategy-short-gamma.html" style="white-space:nowrap;">Open report →</a>
     </div>

@@ -90,20 +90,20 @@ footer.foot{text-align:center; color:var(--text-dim); font-size:12px; padding:40
 <body>
 
 <style>
-  .site-nav{{
+  .site-nav{
     max-width:1180px; margin:0 auto; padding:16px 24px;
     display:flex; align-items:center; justify-content:space-between;
     font-family:"JetBrains Mono",monospace; font-size:13px;
     border-bottom:1px solid var(--border);
-  }}
-  .site-nav a{{ text-decoration:none; }}
-  .site-nav .brand{{ display:flex; align-items:center; gap:8px; color:var(--text); font-weight:500; }}
-  .site-nav .brand .dot{{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; }}
-  .site-nav .links{{ display:flex; gap:20px; }}
-  .site-nav .links a{{ color:var(--text-dim); }}
-  .site-nav .links a:hover{{ color:var(--text); }}
-  .site-nav .links a.active{{ color:var(--accent); }}
-  @media (max-width:640px){{ .site-nav .links{{ display:none; }} }}
+  }
+  .site-nav a{ text-decoration:none; }
+  .site-nav .brand{ display:flex; align-items:center; gap:8px; color:var(--text); font-weight:500; }
+  .site-nav .brand .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; }
+  .site-nav .links{ display:flex; gap:20px; }
+  .site-nav .links a{ color:var(--text-dim); }
+  .site-nav .links a:hover{ color:var(--text); }
+  .site-nav .links a.active{ color:var(--accent); }
+  @media (max-width:640px){ .site-nav .links{ display:none; } }
 </style>
 <nav class="site-nav">
   <a class="brand" href="index.html"><span class="dot"></span>netgexdaily</a>

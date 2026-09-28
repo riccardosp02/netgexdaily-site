@@ -101,18 +101,18 @@
 
     <div style="width:100%; border:1px solid var(--line); padding:20px 22px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
       <div>
-        <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX options gamma exposure</div>
-        <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">Options Flow</h3>
-        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Strategia di fade sui livelli di gamma exposure (mpos_vol/mneg_vol), con filtro di conferma su CVD e net gamma exposure. Long e Short, dati Yahoo Finance, giugno–settembre 2026.</p>
+        <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX gamma exposure · IS/OOS</div>
+        <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">SPX Gamma Strategy</h3>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Due modi di sfruttare lo stesso livello di gamma exposure (mneg/mpos): rigetto immediato sul tocco (Long e Short) o rottura con successivo reclaim (solo Long). Validata in-sample/out-of-sample, giugno–settembre 2026.</p>
       </div>
-      <a class="btn primary" href="strategy-options-flow.html" style="white-space:nowrap;">Apri il report →</a>
+      <a class="btn primary" href="strategy-spx-gamma.html" style="white-space:nowrap;">Apri il report →</a>
     </div>
 
     <div style="width:100%; border:1px solid var(--line); padding:20px 22px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;">
       <div>
         <div style="font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;">backtest · SPX gamma exposure · solo short</div>
         <h3 style="font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;">Short Gamma</h3>
-        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Strategia indipendente da Options Flow: usa lo zero gamma come resistenza quando il mercato è già in trend ribassista, invece di fare fade su un livello. Solo Short, dati SPX 5m Yahoo Finance, giugno–settembre 2026.</p>
+        <p style="margin:0; font-size:14px; color:var(--ink-soft); max-width:52ch;">Strategia indipendente da SPX Gamma Strategy: usa lo zero gamma come resistenza quando il mercato è già in trend ribassista, invece di fare fade su un livello. Solo Short, dati SPX 5m Yahoo Finance, giugno–settembre 2026.</p>
       </div>
       <a class="btn primary" href="strategy-short-gamma.html" style="white-space:nowrap;">Apri il report →</a>
     </div>
