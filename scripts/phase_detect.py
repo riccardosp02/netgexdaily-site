@@ -419,12 +419,20 @@ def find_day_boxes(df_tf: pd.DataFrame, day_start: pd.Timestamp, day_end: pd.Tim
     """
     Trova TUTTI i box di congestione della giornata, indipendentemente
     dalla fase lateralita'/impulso dello z-score (che puo' includere
-    ancora rampa in un tratto 'lateralita' per il ritardo di conferma):
+    ancora rampa in un tratto 'lateralita' per il ritardo di conferma).
 
-    1. split_into_subranges su tutta la giornata (separa i tratti dove
-       il prezzo si sposta troppo per essere lo stesso box)
-    2. per ciascun tratto, trim_edge_outliers con tolleranza adattiva
-       (toglie le code di rampa residue ai due estremi)
+    Usa SOLO split_into_subranges: un singolo passaggio in avanti che
+    decide di chiudere un tratto guardando esclusivamente le barre gia'
+    viste fino a quel momento (mai quelle future). Il bordo del box e'
+    il min/max grezzo delle chiusure del tratto cosi' trovato.
+
+    NON applica piu' alcun trim dei bordi basato sulla mediana
+    dell'intero tratto (trim_edge_outliers): quel passaggio decideva se
+    scartare la prima barra guardando anche le barre successive del
+    tratto, cioe' usava informazione non ancora disponibile in quel
+    momento (look-ahead bias). Il box che vedi puo' quindi essere piu'
+    largo di una rifinitura "a occhio", ma e' costruito senza guardare
+    il futuro.
 
     Ritorna una lista di dict {start, end, lower, upper}.
     """
@@ -432,11 +440,9 @@ def find_day_boxes(df_tf: pd.DataFrame, day_start: pd.Timestamp, day_end: pd.Tim
     boxes = []
     for s, e in runs:
         closes = df_tf.loc[s:e, "close"]
-        tol = adaptive_tolerance(len(closes))
-        trimmed = trim_edge_outliers(closes, tolerance=tol)
         boxes.append({
-            "start": trimmed.index[0], "end": trimmed.index[-1],
-            "lower": trimmed.min(), "upper": trimmed.max(),
+            "start": s, "end": e,
+            "lower": closes.min(), "upper": closes.max(),
         })
     return boxes
 
@@ -511,12 +517,12 @@ def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
         if box_a["phase"] != "lateralita" or impulso["phase"] != "impulso" or box_b["phase"] != "lateralita":
             continue
 
+        # bordi grezzi del tratto, nessun trim che userebbe barre future per
+        # giudicare quelle iniziali (vedi nota in find_day_boxes)
         closes_a = df_tf.loc[box_a["start"]:box_a["end"], "close"]
         closes_b = df_tf.loc[box_b["start"]:box_b["end"], "close"]
-        trimmed_a = trim_edge_outliers(closes_a, tolerance=adaptive_tolerance(len(closes_a)))
-        trimmed_b = trim_edge_outliers(closes_b, tolerance=adaptive_tolerance(len(closes_b)))
-        a_start, a_end, a_lower, a_upper = trimmed_a.index[0], trimmed_a.index[-1], trimmed_a.min(), trimmed_a.max()
-        b_start, b_end, b_lower, b_upper = trimmed_b.index[0], trimmed_b.index[-1], trimmed_b.min(), trimmed_b.max()
+        a_start, a_end, a_lower, a_upper = box_a["start"], box_a["end"], closes_a.min(), closes_a.max()
+        b_start, b_end, b_lower, b_upper = box_b["start"], box_b["end"], closes_b.min(), closes_b.max()
 
         bo = events[(events["type"] == "breakout") & (events["datetime"] >= impulso["start"]) &
                     (events["datetime"] <= impulso["end"])].sort_values("datetime")
