@@ -43,16 +43,23 @@ def load_value_area(path: str) -> pd.DataFrame:
     return df[["price", "vah", "val", "volume"]]
 
 
-def resample_30m(df: pd.DataFrame) -> pd.DataFrame:
+def resample_ohlc(df: pd.DataFrame, freq: str) -> pd.DataFrame:
     """
-    OHLC a 30 minuti. Il bin [T, T+30m) viene etichettato con end_time = T+30m,
-    cioe' il momento in cui la barra 30m e' effettivamente chiusa e disponibile.
+    OHLC(+cvd) ricampionato su un timeframe qualsiasi (es. '15min', '30min').
+    Il bin [T, T+freq) viene etichettato con end_time = T+freq, cioe' il
+    momento in cui la barra e' effettivamente chiusa e disponibile.
     """
-    agg = df.resample("30min", label="right", closed="left").agg(
-        {"open": "first", "high": "max", "low": "min", "close": "last"}
-    ).dropna()
+    agg_map = {"open": "first", "high": "max", "low": "min", "close": "last"}
+    if "cvd" in df.columns:
+        agg_map["cvd"] = "last"
+    agg = df.resample(freq, label="right", closed="left").agg(agg_map).dropna(subset=["close"])
     agg = agg.rename_axis("end_time")
     return agg
+
+
+def resample_30m(df: pd.DataFrame) -> pd.DataFrame:
+    """Alias storico: OHLC a 30 minuti (vedi resample_ohlc)."""
+    return resample_ohlc(df, "30min")
 
 
 def classify_phases(ohlc_30m: pd.DataFrame, lookback: int, impulse_z: float,
