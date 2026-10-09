@@ -293,6 +293,60 @@ def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def build_congestion_box(df_tf: pd.DataFrame, seg_start: pd.Timestamp, seg_end: pd.Timestamp,
+                          bin_size: float = 1.0, coverage: float = 0.7):
+    """
+    Box definito sulla zona di maggior congestione delle CHIUSURE (non
+    wick), tagliato escludendo le candele di assestamento iniziali/
+    finali che restano fuori da quella zona.
+
+    1. istogramma delle chiusure nel tratto (bin da 'bin_size' punti)
+    2. parte dal bin piu' popolato (moda) ed espande ai bin adiacenti
+       finche' copre almeno 'coverage' delle barre -> range di prezzo
+       [lower, upper]
+    3. tempo del box = dalla prima all'ultima barra il cui close cade
+       dentro [lower, upper] (le barre di rampa iniziale/finale fuori
+       da quella fascia vengono escluse)
+
+    Ritorna (box_start, box_end, lower, upper) oppure None se il
+    tratto e' troppo corto/non ha una zona di congestione chiara.
+    """
+    seg = df_tf.loc[seg_start:seg_end]
+    closes = seg["close"]
+    if len(closes) < 3:
+        return None
+
+    bins = (closes / bin_size).round().astype(int)
+    counts = bins.value_counts().sort_index()
+
+    mode_bin = counts.idxmax()
+    lo_bin, hi_bin = mode_bin, mode_bin
+    covered = counts.loc[mode_bin]
+    total = len(closes)
+
+    while covered / total < coverage and (lo_bin - 1 in counts.index or hi_bin + 1 in counts.index):
+        left = counts.get(lo_bin - 1, 0)
+        right = counts.get(hi_bin + 1, 0)
+        if left >= right and lo_bin - 1 in counts.index:
+            lo_bin -= 1
+            covered += left
+        elif hi_bin + 1 in counts.index:
+            hi_bin += 1
+            covered += right
+        else:
+            break
+
+    lower = (lo_bin - 0.5) * bin_size
+    upper = (hi_bin + 0.5) * bin_size
+
+    inside = closes[(closes >= lower) & (closes <= upper)]
+    if inside.empty:
+        return None
+    box_start, box_end = inside.index[0], inside.index[-1]
+
+    return box_start, box_end, lower, upper
+
+
 def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
                            events: pd.DataFrame, min_volume_ratio: float = 0.0) -> pd.DataFrame:
     """
@@ -325,10 +379,12 @@ def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
         if box_a["phase"] != "lateralita" or impulso["phase"] != "impulso" or box_b["phase"] != "lateralita":
             continue
 
-        seg_a = result.loc[box_a["start"]:box_a["end"]]
-        seg_b = result.loc[box_b["start"]:box_b["end"]]
-        a_upper, a_lower = seg_a["high"].max(), seg_a["low"].min()
-        b_upper, b_lower = seg_b["high"].max(), seg_b["low"].min()
+        box_a_cong = build_congestion_box(df_tf, box_a["start"], box_a["end"])
+        box_b_cong = build_congestion_box(df_tf, box_b["start"], box_b["end"])
+        if box_a_cong is None or box_b_cong is None:
+            continue
+        a_start, a_end, a_lower, a_upper = box_a_cong
+        b_start, b_end, b_lower, b_upper = box_b_cong
 
         bo = events[(events["type"] == "breakout") & (events["datetime"] >= impulso["start"]) &
                     (events["datetime"] <= impulso["end"])].sort_values("datetime")
@@ -353,11 +409,11 @@ def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
             volume_ratio = np.nan
 
         moves.append({
-            "box_a_start": box_a["start"], "box_a_end": box_a["end"],
+            "box_a_start": a_start, "box_a_end": a_end,
             "box_a_upper": a_upper, "box_a_lower": a_lower,
             "breakout_time": first_bo["datetime"], "breakout_side": first_bo["side"],
             "breakout_close": first_bo["close"], "direction": direction,
-            "box_b_start": box_b["start"], "box_b_end": box_b["end"],
+            "box_b_start": b_start, "box_b_end": b_end,
             "box_b_upper": b_upper, "box_b_lower": b_lower,
             "distance": distance, "volume_ratio": volume_ratio,
         })
