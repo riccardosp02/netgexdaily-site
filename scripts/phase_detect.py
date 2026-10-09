@@ -294,7 +294,7 @@ def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
 
 
 def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
-                           events: pd.DataFrame) -> pd.DataFrame:
+                           events: pd.DataFrame, min_volume_ratio: float = 0.0) -> pd.DataFrame:
     """
     Scansiona l'intero periodo e trova ogni passaggio
     lateralita' (box A) -> impulso (breakout) -> lateralita' (box B),
@@ -362,7 +362,10 @@ def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
             "distance": distance, "volume_ratio": volume_ratio,
         })
 
-    return pd.DataFrame(moves)
+    out = pd.DataFrame(moves)
+    if not out.empty and min_volume_ratio > 0:
+        out = out[out["volume_ratio"] >= min_volume_ratio]
+    return out
 
 
 def detect_absorptions_native(df_5m: pd.DataFrame, result_5m: pd.DataFrame,
