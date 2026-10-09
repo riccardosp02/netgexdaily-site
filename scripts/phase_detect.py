@@ -623,16 +623,18 @@ def main():
     parser.add_argument("csv_path")
     parser.add_argument("--start", required=True,
                          help="Data/ora da cui iniziare l'analisi, es. '2026-10-07 00:00:00'")
-    parser.add_argument("--lookback", type=int, default=20,
-                         help="Barre (5m) per calcolare la volatilita' di riferimento")
-    parser.add_argument("--impulse-z", type=float, default=1.3,
+    parser.add_argument("--timeframe", default="15min",
+                         help="Timeframe nativo per fasi e box (es. '5min', '15min', '30min')")
+    parser.add_argument("--lookback", type=int, default=15,
+                         help="Barre (al timeframe scelto) per calcolare la volatilita' di riferimento")
+    parser.add_argument("--impulse-z", type=float, default=1.2,
                          help="Soglia z-score sopra cui una barra e' 'veloce'")
     parser.add_argument("--lateral-z", type=float, default=0.5,
                          help="Soglia z-score sotto cui una barra e' 'lenta'")
     parser.add_argument("--confirm-bars", type=int, default=2,
                          help="Barre consecutive richieste per confermare un cambio fase")
-    parser.add_argument("--min-phase-bars", type=int, default=3,
-                         help="Barre (5m) minime per considerare valida una fase; sotto, viene riassorbita nella fase precedente")
+    parser.add_argument("--min-phase-bars", type=int, default=2,
+                         help="Barre minime per considerare valida una fase; sotto, viene riassorbita nella fase precedente")
     parser.add_argument("--min-wick", type=float, default=0.0,
                          help="Ampiezza minima della wick fuori bordo per contare come evento (filtra rumore)")
     parser.add_argument("--va-path", default=None,
@@ -647,11 +649,12 @@ def main():
     args = parser.parse_args()
 
     df_5m = load_data(args.csv_path)
+    df_tf = resample_ohlc(df_5m, args.timeframe) if args.timeframe != "5min" else df_5m
     start_ts = pd.Timestamp(args.start)
 
-    # tutto a timeframe 5m nativo: le fasi e il box usano le stesse barre
+    # tutto allo stesso timeframe nativo: fasi e box usano le stesse barre
     result_full = classify_phases(
-        df_5m, args.lookback, args.impulse_z, args.lateral_z, args.confirm_bars
+        df_tf, args.lookback, args.impulse_z, args.lateral_z, args.confirm_bars
     )
     result_full = apply_min_duration(result_full, args.min_phase_bars)
     result_full = build_running_edges(result_full)
@@ -661,14 +664,14 @@ def main():
         print("Nessun dato disponibile da/dopo la data di inizio indicata.")
         return
 
-    print(f"Analisi da {start_ts} a {result.index[-1]} ({len(result)} barre da 5m)\n")
+    print(f"Analisi da {start_ts} a {result.index[-1]} ({len(result)} barre da {args.timeframe})\n")
     summarize_transitions(result)
 
     current = result.iloc[-1]
     print(f"\nFase attuale: {current['phase'].upper()}  "
           f"(ultima chiusura {current.name}: {current['close']:.2f}, z={current['z_velocity']:.2f})")
 
-    events_full = detect_absorptions_native(df_5m, result_full, min_wick=args.min_wick)
+    events_full = detect_absorptions_native(df_tf, result_full, min_wick=args.min_wick)
     events = events_full[events_full["datetime"] >= start_ts] if not events_full.empty else events_full
     summarize_absorptions(events)
 
