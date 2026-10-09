@@ -386,6 +386,61 @@ def build_congestion_box(df_tf: pd.DataFrame, seg_start: pd.Timestamp, seg_end: 
     return box_start, box_end, lower, upper
 
 
+def trim_edge_outliers(closes: pd.Series, tolerance: float = 3.0) -> pd.Series:
+    """
+    Toglie iterativamente la barra di bordo (prima o ultima) se la sua
+    chiusura si discosta dalla mediana delle barre restanti per piu' di
+    'tolerance': sono le candele di rampa (entrata/uscita dal box) che
+    non fanno parte della vera congestione. Si ferma quando restano <= 3
+    barre o quando ne' la prima ne' l'ultima barra sono piu' outlier.
+    """
+    vals = closes.copy()
+    changed = True
+    while changed and len(vals) > 3:
+        changed = False
+        if abs(vals.iloc[0] - vals.iloc[1:].median()) > tolerance:
+            vals = vals.iloc[1:]
+            changed = True
+            continue
+        if abs(vals.iloc[-1] - vals.iloc[:-1].median()) > tolerance:
+            vals = vals.iloc[:-1]
+            changed = True
+    return vals
+
+
+def adaptive_tolerance(n_bars: int, base: float = 3.0, k: float = 0.15) -> float:
+    """Tolleranza di trim_edge_outliers, cresce con la lunghezza del tratto
+    (un box lungo accumula piu' deriva naturale di uno corto)."""
+    return base + k * n_bars
+
+
+def find_day_boxes(df_tf: pd.DataFrame, day_start: pd.Timestamp, day_end: pd.Timestamp,
+                    max_width: float = 18.0, min_bars: int = 4):
+    """
+    Trova TUTTI i box di congestione della giornata, indipendentemente
+    dalla fase lateralita'/impulso dello z-score (che puo' includere
+    ancora rampa in un tratto 'lateralita' per il ritardo di conferma):
+
+    1. split_into_subranges su tutta la giornata (separa i tratti dove
+       il prezzo si sposta troppo per essere lo stesso box)
+    2. per ciascun tratto, trim_edge_outliers con tolleranza adattiva
+       (toglie le code di rampa residue ai due estremi)
+
+    Ritorna una lista di dict {start, end, lower, upper}.
+    """
+    runs = split_into_subranges(df_tf, day_start, day_end, max_width=max_width, min_bars=min_bars)
+    boxes = []
+    for s, e in runs:
+        closes = df_tf.loc[s:e, "close"]
+        tol = adaptive_tolerance(len(closes))
+        trimmed = trim_edge_outliers(closes, tolerance=tol)
+        boxes.append({
+            "start": trimmed.index[0], "end": trimmed.index[-1],
+            "lower": trimmed.min(), "upper": trimmed.max(),
+        })
+    return boxes
+
+
 def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
                            events: pd.DataFrame, min_volume_ratio: float = 0.0) -> pd.DataFrame:
     """
@@ -418,12 +473,12 @@ def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
         if box_a["phase"] != "lateralita" or impulso["phase"] != "impulso" or box_b["phase"] != "lateralita":
             continue
 
-        box_a_cong = build_congestion_box(df_tf, box_a["start"], box_a["end"])
-        box_b_cong = build_congestion_box(df_tf, box_b["start"], box_b["end"])
-        if box_a_cong is None or box_b_cong is None:
-            continue
-        a_start, a_end, a_lower, a_upper = box_a_cong
-        b_start, b_end, b_lower, b_upper = box_b_cong
+        closes_a = df_tf.loc[box_a["start"]:box_a["end"], "close"]
+        closes_b = df_tf.loc[box_b["start"]:box_b["end"], "close"]
+        trimmed_a = trim_edge_outliers(closes_a, tolerance=adaptive_tolerance(len(closes_a)))
+        trimmed_b = trim_edge_outliers(closes_b, tolerance=adaptive_tolerance(len(closes_b)))
+        a_start, a_end, a_lower, a_upper = trimmed_a.index[0], trimmed_a.index[-1], trimmed_a.min(), trimmed_a.max()
+        b_start, b_end, b_lower, b_upper = trimmed_b.index[0], trimmed_b.index[-1], trimmed_b.min(), trimmed_b.max()
 
         bo = events[(events["type"] == "breakout") & (events["datetime"] >= impulso["start"]) &
                     (events["datetime"] <= impulso["end"])].sort_values("datetime")
