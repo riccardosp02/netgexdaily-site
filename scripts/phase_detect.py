@@ -87,6 +87,71 @@ def classify_phases(ohlc_30m: pd.DataFrame, lookback: int, impulse_z: float,
     return out
 
 
+def apply_min_duration(result_30m: pd.DataFrame, min_bars: int) -> pd.DataFrame:
+    """
+    Riassorbe nella fase precedente qualsiasi tratto piu' corto di min_bars
+    barre da 30m (elimina blip isolati tipo una singola barra 'impulso'
+    circondata da lateralita').
+    """
+    if min_bars <= 1:
+        return result_30m
+
+    phases = result_30m["phase"].tolist()
+    changed = True
+    while changed:
+        changed = False
+        seg_id = pd.Series(phases).ne(pd.Series(phases).shift()).cumsum()
+        counts = seg_id.value_counts()
+        for sid, length in counts.items():
+            if length < min_bars and sid > 1:  # mai il primissimo tratto, non ha un "prima"
+                idx = seg_id[seg_id == sid].index
+                prev_phase = phases[idx[0] - 1]
+                for i in idx:
+                    phases[i] = prev_phase
+                changed = True
+                break  # ricalcola i segmenti dopo ogni merge
+
+    out = result_30m.copy()
+    out["phase"] = phases
+    return out
+
+
+def refine_signal_start(df_5m: pd.DataFrame, result_30m: pd.DataFrame) -> pd.DataFrame:
+    """
+    Per ogni transizione lateralita'->impulso, la barra 30m segnala il
+    cambio solo alla sua chiusura. Qui si cerca, dentro le 5m di quella
+    finestra da 30 minuti, il punto di inversione reale (il massimo prima
+    di un impulso ribassista, il minimo prima di uno rialzista): quello
+    e' il momento in cui il movimento e' davvero iniziato.
+    """
+    transitions = result_30m[
+        (result_30m["phase"] == "impulso") & (result_30m["phase"].shift() == "lateralita")
+    ]
+
+    refined = []
+    for end_time, row in transitions.iterrows():
+        # guarda anche nella barra 30m precedente: il vero punto di svolta puo'
+        # trovarsi li' se il movimento e' iniziato a ridosso del confine tra le due
+        window_start = end_time - pd.Timedelta("60min")
+        window = df_5m.loc[window_start:end_time]
+        if window.empty:
+            continue
+
+        prev_30m_close = result_30m["close"].shift().loc[end_time]
+        direction = "down" if row["close"] < prev_30m_close else "up"
+        if direction == "down":
+            pivot_time = window["close"].idxmax()
+        else:
+            pivot_time = window["close"].idxmin()
+
+        refined.append({
+            "bar_30m_end": end_time, "direction": direction,
+            "signal_start_5m": pivot_time, "pivot_close": window.loc[pivot_time, "close"],
+        })
+
+    return pd.DataFrame(refined)
+
+
 def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
     """
     Per ogni barra 30m in fase 'lateralita', calcola il bordo superiore e
@@ -243,6 +308,8 @@ def main():
                          help="Path CSV dove salvare gli eventi di assorbimento (opzionale)")
     parser.add_argument("--min-wick", type=float, default=0.0,
                          help="Ampiezza minima della wick fuori bordo per contare come evento (filtra rumore)")
+    parser.add_argument("--min-phase-bars", type=int, default=1,
+                         help="Barre (30m) minime per considerare valida una fase; sotto, viene riassorbita nella fase precedente")
     args = parser.parse_args()
 
     df_5m = load_data(args.csv_path)
@@ -253,6 +320,7 @@ def main():
     result_full = classify_phases(
         ohlc_30m, args.lookback, args.impulse_z, args.lateral_z, args.confirm_bars
     )
+    result_full = apply_min_duration(result_full, args.min_phase_bars)
     result_full = build_running_edges(result_full)
 
     result = result_full.loc[result_full.index >= start_ts]
@@ -262,6 +330,14 @@ def main():
 
     print(f"Analisi da {start_ts} a {result.index[-1]} ({len(result)} barre da 30m)\n")
     summarize_transitions(result)
+
+    refined = refine_signal_start(df_5m, result_full)
+    refined = refined[refined["bar_30m_end"] >= start_ts] if not refined.empty else refined
+    if not refined.empty:
+        print("\nInizio segnale (raffinato sulle 5m):")
+        for _, r in refined.iterrows():
+            print(f"  barra 30m chiusa {r['bar_30m_end']}  ({r['direction']})  "
+                  f"-> inizio reale {r['signal_start_5m']}  (pivot close={r['pivot_close']:.2f})")
 
     current = result.iloc[-1]
     print(f"\nFase attuale: {current['phase'].upper()}  "
