@@ -339,6 +339,53 @@ def detect_absorptions_native(df_5m: pd.DataFrame, result_5m: pd.DataFrame,
     return pd.DataFrame(events)
 
 
+def add_confirmations(events: pd.DataFrame, va: pd.DataFrame = None,
+                       vol_lookback: int = 6) -> pd.DataFrame:
+    """
+    Arricchisce gli eventi (assorbimento/breakout, qualunque sia la loro
+    origine: box nativo 5m o Value Area) con due controlli aggiuntivi,
+    che OGGI non influenzano la classificazione dell'evento (quella
+    dipende solo dal prezzo: chiusura dentro/fuori dal bordo):
+
+      - cvd_confirmed: il delta di CVD della barra spinge nella stessa
+        direzione dell'evento (side='top' -> cvd_delta>0 comprato
+        aggressivo; side='bottom' -> cvd_delta<0 venduto aggressivo).
+        Per un breakout, "confermato" vuol dire che chi ha rotto il
+        livello lo ha fatto spingendo davvero in quella direzione, non
+        per inerzia/rumore. Per un assorbimento, vuol dire che c'era
+        davvero un'aggressione (nella direzione del bordo) che e' stata
+        respinta, non solo una wick senza volume dietro.
+
+      - volume_trend: se e' disponibile una colonna 'volume' (tipicamente
+        dal file Value Area), confronta il volume della barra con la
+        media delle vol_lookback barre PRECEDENTI (causale, mai la barra
+        stessa) e segna 'crescente' o 'calante'.
+    """
+    out = events.copy()
+    if out.empty:
+        out["cvd_confirmed"] = []
+        out["volume_trend"] = []
+        out["volume"] = []
+        return out
+
+    expected_sign = out["side"].map({"top": 1, "bottom": -1})
+    out["cvd_confirmed"] = (np.sign(out["cvd_delta"]) == expected_sign)
+
+    if va is not None and "volume" in va.columns:
+        vol = va["volume"]
+        vol_avg_prior = vol.rolling(vol_lookback).mean().shift()
+        vol_at_ts = out["datetime"].map(vol)
+        avg_at_ts = out["datetime"].map(vol_avg_prior)
+        out["volume"] = vol_at_ts
+        out["volume_trend"] = np.where(vol_at_ts > avg_at_ts, "crescente",
+                                 np.where(vol_at_ts < avg_at_ts, "calante", "stabile"))
+    else:
+        out["volume"] = np.nan
+        out["volume_trend"] = "n/d"
+
+    return out
+
+
 def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
                                   threshold: int = 3) -> pd.DataFrame:
     """
