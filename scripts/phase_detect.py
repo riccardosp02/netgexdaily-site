@@ -386,6 +386,42 @@ def add_confirmations(events: pd.DataFrame, va: pd.DataFrame = None,
     return out
 
 
+def evaluate_followthrough(events: pd.DataFrame, df_5m: pd.DataFrame,
+                            horizons=(6, 12)) -> pd.DataFrame:
+    """
+    Per ogni evento di tipo 'breakout', guarda cosa fa il prezzo DOPO
+    (solo barre successive all'evento, nessun look-ahead nella
+    generazione del segnale: qui si valuta solo l'esito a posteriori).
+
+    Per ogni orizzonte (in barre 5m, es. 6 = 30 min), calcola il
+    movimento nella direzione del breakout:
+      side='top'    -> close[t+h] - close[t]   (positivo = prosegue su)
+      side='bottom' -> close[t] - close[t+h]   (positivo = prosegue giu')
+
+    'prosegue' = movimento positivo (il breakout continua).
+    """
+    closes = df_5m["close"]
+    rows = []
+    for _, ev in events[events["type"] == "breakout"].iterrows():
+        ts = ev["datetime"]
+        if ts not in closes.index:
+            continue
+        pos = closes.index.get_loc(ts)
+        row = {"datetime": ts, "side": ev["side"], "close": ev["close"],
+               "cvd_confirmed": ev.get("cvd_confirmed"), "volume_trend": ev.get("volume_trend")}
+        for h in horizons:
+            if pos + h < len(closes):
+                future_close = closes.iloc[pos + h]
+                move = (future_close - ev["close"]) if ev["side"] == "top" else (ev["close"] - future_close)
+                row[f"move_{h}b"] = move
+                row[f"prosegue_{h}b"] = move > 0
+            else:
+                row[f"move_{h}b"] = np.nan
+                row[f"prosegue_{h}b"] = np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
                                   threshold: int = 3) -> pd.DataFrame:
     """
