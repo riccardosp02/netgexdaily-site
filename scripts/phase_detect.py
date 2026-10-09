@@ -293,6 +293,78 @@ def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
+                           events: pd.DataFrame) -> pd.DataFrame:
+    """
+    Scansiona l'intero periodo e trova ogni passaggio
+    lateralita' (box A) -> impulso (breakout) -> lateralita' (box B),
+    cioe' il pattern "spostamento da una lateralita' all'altra".
+
+    Per ciascuno misura:
+      - bordi e durata del box di partenza e di quello di arrivo
+      - timestamp/prezzo del PRIMO breakout che lascia il box di partenza
+      - distanza percorsa dal breakout al bordo piu' vicino del box di
+        arrivo (quanto "cammina" il prezzo tra una lateralita' e l'altra)
+      - 'volume' (qui CVD, unico proxy disponibile nei dati OHLC): il
+        |cvd_delta| medio durante l'impulso confrontato con quello
+        durante il box di partenza -> volume_ratio > 1 vuol dire che
+        l'impulso e' stato sostenuto da piu' attivita' che la
+        lateralita' precedente, un indizio che il movimento era "vero"
+        e non rumore.
+    """
+    phase = result["phase"]
+    seg_id = phase.ne(phase.shift()).cumsum()
+    segments = []
+    for sid, idx in result.groupby(seg_id).groups.items():
+        seg = result.loc[idx]
+        segments.append({"phase": seg["phase"].iloc[0], "start": seg.index[0], "end": seg.index[-1]})
+
+    moves = []
+    for i in range(len(segments) - 2):
+        box_a, impulso, box_b = segments[i], segments[i + 1], segments[i + 2]
+        if box_a["phase"] != "lateralita" or impulso["phase"] != "impulso" or box_b["phase"] != "lateralita":
+            continue
+
+        seg_a = result.loc[box_a["start"]:box_a["end"]]
+        seg_b = result.loc[box_b["start"]:box_b["end"]]
+        a_upper, a_lower = seg_a["high"].max(), seg_a["low"].min()
+        b_upper, b_lower = seg_b["high"].max(), seg_b["low"].min()
+
+        bo = events[(events["type"] == "breakout") & (events["datetime"] >= impulso["start"]) &
+                    (events["datetime"] <= impulso["end"])].sort_values("datetime")
+        if bo.empty:
+            continue
+        first_bo = bo.iloc[0]
+
+        if first_bo["side"] == "top":
+            distance = b_lower - first_bo["close"]  # quanto manca al bordo piu' vicino del box B (dall'alto)
+            direction = "up"
+        else:
+            distance = first_bo["close"] - b_upper
+            direction = "down"
+
+        impulso_bars = df_tf.loc[impulso["start"]:impulso["end"]]
+        box_a_bars = df_tf.loc[box_a["start"]:box_a["end"]]
+        if "cvd" in df_tf.columns:
+            vol_impulso = impulso_bars["cvd"].diff().abs().mean()
+            vol_box_a = box_a_bars["cvd"].diff().abs().mean()
+            volume_ratio = vol_impulso / vol_box_a if vol_box_a else np.nan
+        else:
+            volume_ratio = np.nan
+
+        moves.append({
+            "box_a_start": box_a["start"], "box_a_end": box_a["end"],
+            "box_a_upper": a_upper, "box_a_lower": a_lower,
+            "breakout_time": first_bo["datetime"], "breakout_side": first_bo["side"],
+            "breakout_close": first_bo["close"], "direction": direction,
+            "box_b_start": box_b["start"], "box_b_end": box_b["end"],
+            "box_b_upper": b_upper, "box_b_lower": b_lower,
+            "distance": distance, "volume_ratio": volume_ratio,
+        })
+
+    return pd.DataFrame(moves)
+
+
 def detect_absorptions_native(df_5m: pd.DataFrame, result_5m: pd.DataFrame,
                                min_wick: float = 0.0) -> pd.DataFrame:
     """
