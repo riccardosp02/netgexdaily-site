@@ -1,14 +1,16 @@
 """
-Identificazione fase di mercato (lateralita' / impulso) su candele 30m,
-usando le chiusure, man mano che il tempo avanza. Quando una fase e'
-lateralita', cerca inoltre assorbimenti ai bordi del box sulle 5m,
-confermati dal CVD.
+Identificazione fase di mercato (lateralita' / impulso) su candele 5m,
+usando le chiusure, man mano che il tempo avanza. Fasi e bordo del box
+sono calcolati entrambi sugli stessi 5m (nessun timeframe piu' alto).
+Quando una fase e' lateralita', cerca assorbimenti/breakout ai bordi
+del box, confermati dal CVD, e puo' confrontarli con quelli trovati
+sulla Value Area (VAH/VAL) se fornita.
 
 Uso:
-    python3 scripts/phase_detect.py data/ohlc_cvd_2026-10.txt --start "2026-10-02 09:00:00"
+    python3 scripts/phase_detect.py data/ohlc_cvd_2026-10.txt --start "2026-10-07 00:00:00" \
+        --va-path data/value_area.csv
 
-CSV atteso con colonne: date,time,open,high,low,close,cvd,vwap
-(timeframe nativo 5m; le fasi vengono calcolate su chiusure 30m)
+CSV atteso con colonne: date,time,open,high,low,close,cvd,vwap (5m)
 
 Dipendenze:
     pip install pandas numpy matplotlib
@@ -220,9 +222,10 @@ def detect_va_events(df_5m: pd.DataFrame, va: pd.DataFrame,
 
     if result_30m is not None:
         ref = result_30m[["phase"]].reset_index()
+        ref = ref.rename(columns={ref.columns[0]: "ref_time"})
         merged = pd.merge_asof(
             merged.reset_index().rename(columns={"datetime": "ts"}).sort_values("ts"),
-            ref.sort_values("end_time"), left_on="ts", right_on="end_time", direction="backward"
+            ref.sort_values("ref_time"), left_on="ts", right_on="ref_time", direction="backward"
         ).set_index("ts")
         merged = merged[merged["phase"] == "lateralita"]
 
@@ -336,6 +339,77 @@ def detect_absorptions_native(df_5m: pd.DataFrame, result_5m: pd.DataFrame,
     return pd.DataFrame(events)
 
 
+def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
+                                  threshold: int = 3) -> pd.DataFrame:
+    """
+    Scorre gli eventi in ordine cronologico contando gli assorbimenti
+    consecutivi sullo stesso lato (es. 'top'). Il contatore si azzera
+    quando arriva un breakout sul lato OPPOSTO (es. 'bottom': la rottura
+    che l'assorbimento ripetuto in teoria dovrebbe anticipare/impedire).
+
+    Per ogni volta che il contatore raggiunge 'threshold', registra:
+      - quanti ULTERIORI assorbimenti sullo stesso lato arrivano prima
+        del breakout sul lato opposto (0 se il breakout arriva subito dopo)
+      - se il breakout sul lato opposto arriva mai, o la sequenza resta
+        aperta (nessun breakout nel periodo analizzato)
+    """
+    if events.empty:
+        return pd.DataFrame()
+
+    opposite = "bottom" if side == "top" else "top"
+    ev = events[events["type"].isin(["assorbimento", "breakout"])].sort_values("datetime")
+
+    sequences = []
+    run_count = 0
+    run_start = None
+    extra_after_threshold = 0
+    triggered = False
+
+    for _, row in ev.iterrows():
+        if row["type"] == "assorbimento" and row["side"] == side:
+            run_count += 1
+            if run_count == 1:
+                run_start = row["datetime"]
+            if run_count == threshold:
+                triggered = True
+                extra_after_threshold = 0
+            elif run_count > threshold and triggered:
+                extra_after_threshold += 1
+
+        elif row["type"] == "breakout" and row["side"] == opposite:
+            if triggered:
+                sequences.append({
+                    "run_start": run_start, "threshold_reached_at_count": threshold,
+                    "extra_absorptions_after_threshold": extra_after_threshold,
+                    "total_absorptions_in_run": run_count,
+                    "opposite_breakout_time": row["datetime"],
+                    "opposite_breakout_close": row["close"], "resolved": True,
+                })
+            run_count = 0
+            run_start = None
+            triggered = False
+            extra_after_threshold = 0
+
+        elif row["type"] == "breakout" and row["side"] == side:
+            # breakout nella stessa direzione degli assorbimenti: la sequenza
+            # "fallisce" (il bordo infine cede dallo stesso lato), si azzera
+            run_count = 0
+            run_start = None
+            triggered = False
+            extra_after_threshold = 0
+
+    if triggered:
+        sequences.append({
+            "run_start": run_start, "threshold_reached_at_count": threshold,
+            "extra_absorptions_after_threshold": extra_after_threshold,
+            "total_absorptions_in_run": run_count,
+            "opposite_breakout_time": None, "opposite_breakout_close": None,
+            "resolved": False,
+        })
+
+    return pd.DataFrame(sequences)
+
+
 def detect_absorptions(df_5m: pd.DataFrame, edges_30m: pd.DataFrame, min_wick: float = 0.0) -> pd.DataFrame:
     """
     Per ogni barra 5m, usa i bordi del box noti dall'ULTIMA barra 30m gia'
@@ -397,15 +471,17 @@ def summarize_transitions(result: pd.DataFrame):
 
 
 def summarize_absorptions(events: pd.DataFrame):
+    """Riepiloga eventi nel formato di detect_absorptions_native/detect_va_events
+    (colonne: datetime, type, side, edge, extreme, close, wick_size, cvd_delta)."""
     if events.empty:
-        print("\nNessun assorbimento ai bordi rilevato nel periodo.")
+        print("\nNessun evento (assorbimento/breakout) rilevato nel periodo.")
         return
-    print(f"\nAssorbimenti ai bordi rilevati: {len(events)}")
+    print(f"\nEventi ai bordi rilevati: {len(events)}")
     for _, e in events.iterrows():
-        tag = "CONFERMATO" if e["confirmed_by_cvd"] else "non confermato"
-        print(f"  {e['datetime']}  [{e['side'].upper()}]  bordo={e['edge']:.2f}  "
-              f"estremo={e['extreme']:.2f}  chiusura={e['close']:.2f}  "
-              f"wick={e['wick_size']:.2f}  cvd_delta={e['cvd_delta']:+.0f}  ({tag})")
+        wick = f"wick={e['wick_size']:.2f}  " if pd.notna(e.get("wick_size")) else ""
+        cvd = f"cvd_delta={e['cvd_delta']:+.0f}" if pd.notna(e.get("cvd_delta")) else "cvd_delta=n/d"
+        print(f"  {e['datetime']}  [{e['type'].upper()} {e['side'].upper()}]  bordo={e['edge']:.2f}  "
+              f"estremo={e['extreme']:.2f}  chiusura={e['close']:.2f}  {wick}{cvd}")
 
 
 def plot_result(result: pd.DataFrame, events: pd.DataFrame, out_path: str = None):
@@ -424,14 +500,14 @@ def plot_result(result: pd.DataFrame, events: pd.DataFrame, out_path: str = None
              linewidth=1, linestyle="--")
 
     if not events.empty:
-        confirmed = events[events["confirmed_by_cvd"]]
-        unconfirmed = events[~events["confirmed_by_cvd"]]
-        ax.scatter(confirmed["datetime"], confirmed["extreme"], marker="^", color="red",
-                   s=60, zorder=5, label="Assorbimento (CVD conferma)")
-        ax.scatter(unconfirmed["datetime"], unconfirmed["extreme"], marker="x", color="gray",
-                   s=40, zorder=5, label="Assorbimento (non confermato)")
+        absorb = events[events["type"] == "assorbimento"]
+        breakout = events[events["type"] == "breakout"]
+        ax.scatter(absorb["datetime"], absorb["extreme"], marker="v", color="red",
+                   s=60, zorder=5, label="Assorbimento")
+        ax.scatter(breakout["datetime"], breakout["close"], marker="x", color="blue",
+                   s=40, zorder=5, label="Breakout")
 
-    ax.set_title("Fasi di mercato e assorbimenti ai bordi (30m + 5m/CVD)")
+    ax.set_title("Fasi di mercato e assorbimenti/breakout ai bordi (box nativo 5m)")
     ax.legend(loc="upper left")
     fig.autofmt_xdate()
 
@@ -446,31 +522,36 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_path")
     parser.add_argument("--start", required=True,
-                         help="Data/ora da cui iniziare l'analisi, es. '2026-10-02 09:00:00'")
+                         help="Data/ora da cui iniziare l'analisi, es. '2026-10-07 00:00:00'")
     parser.add_argument("--lookback", type=int, default=20,
-                         help="Barre (30m) per calcolare la volatilita' di riferimento")
+                         help="Barre (5m) per calcolare la volatilita' di riferimento")
     parser.add_argument("--impulse-z", type=float, default=1.3,
                          help="Soglia z-score sopra cui una barra e' 'veloce'")
-    parser.add_argument("--lateral-z", type=float, default=0.6,
+    parser.add_argument("--lateral-z", type=float, default=0.5,
                          help="Soglia z-score sotto cui una barra e' 'lenta'")
     parser.add_argument("--confirm-bars", type=int, default=2,
                          help="Barre consecutive richieste per confermare un cambio fase")
+    parser.add_argument("--min-phase-bars", type=int, default=3,
+                         help="Barre (5m) minime per considerare valida una fase; sotto, viene riassorbita nella fase precedente")
+    parser.add_argument("--min-wick", type=float, default=0.0,
+                         help="Ampiezza minima della wick fuori bordo per contare come evento (filtra rumore)")
+    parser.add_argument("--va-path", default=None,
+                         help="CSV Value Area (date,time,price,vah,val,volume), opzionale, per confronto")
     parser.add_argument("--out", default=None, help="Path immagine output (es. fasi.png)")
     parser.add_argument("--events-out", default=None,
                          help="Path CSV dove salvare gli eventi di assorbimento (opzionale)")
-    parser.add_argument("--min-wick", type=float, default=0.0,
-                         help="Ampiezza minima della wick fuori bordo per contare come evento (filtra rumore)")
-    parser.add_argument("--min-phase-bars", type=int, default=1,
-                         help="Barre (30m) minime per considerare valida una fase; sotto, viene riassorbita nella fase precedente")
+    parser.add_argument("--sequence-side", default="top", choices=["top", "bottom"],
+                         help="Lato per l'analisi delle sequenze di assorbimento")
+    parser.add_argument("--sequence-threshold", type=int, default=3,
+                         help="Quanti assorbimenti consecutivi sullo stesso lato prima di iniziare a contare")
     args = parser.parse_args()
 
     df_5m = load_data(args.csv_path)
-    ohlc_30m = resample_30m(df_5m)
-
     start_ts = pd.Timestamp(args.start)
-    # calibra la volatilita'/box anche su dati precedenti allo start, poi taglia l'output
+
+    # tutto a timeframe 5m nativo: le fasi e il box usano le stesse barre
     result_full = classify_phases(
-        ohlc_30m, args.lookback, args.impulse_z, args.lateral_z, args.confirm_bars
+        df_5m, args.lookback, args.impulse_z, args.lateral_z, args.confirm_bars
     )
     result_full = apply_min_duration(result_full, args.min_phase_bars)
     result_full = build_running_edges(result_full)
@@ -480,32 +561,33 @@ def main():
         print("Nessun dato disponibile da/dopo la data di inizio indicata.")
         return
 
-    print(f"Analisi da {start_ts} a {result.index[-1]} ({len(result)} barre da 30m)\n")
+    print(f"Analisi da {start_ts} a {result.index[-1]} ({len(result)} barre da 5m)\n")
     summarize_transitions(result)
-
-    refined = refine_signal_start(df_5m, result_full)
-    refined = refined[refined["bar_30m_end"] >= start_ts] if not refined.empty else refined
-    if not refined.empty:
-        print("\nInizio segnale (raffinato sulle 5m):")
-        for _, r in refined.iterrows():
-            print(f"  barra 30m chiusa {r['bar_30m_end']}  ({r['direction']})")
-            print(f"    assorbimento: {r['pivot_time']}  (close={r['pivot_close']:.2f})")
-            if r["breakout_time"] is not None:
-                print(f"    breakout confermato: {r['breakout_time']}  (close={r['breakout_close']:.2f})")
-            else:
-                print(f"    breakout confermato: n/d (nessun bordo di riferimento)")
 
     current = result.iloc[-1]
     print(f"\nFase attuale: {current['phase'].upper()}  "
           f"(ultima chiusura {current.name}: {current['close']:.2f}, z={current['z_velocity']:.2f})")
 
-    events_full = detect_absorptions(df_5m, result_full, min_wick=args.min_wick)
+    events_full = detect_absorptions_native(df_5m, result_full, min_wick=args.min_wick)
     events = events_full[events_full["datetime"] >= start_ts] if not events_full.empty else events_full
     summarize_absorptions(events)
 
     if args.events_out and not events.empty:
         events.to_csv(args.events_out, index=False)
         print(f"\nEventi salvati in {args.events_out}")
+
+    seq = analyze_absorption_sequences(events, side=args.sequence_side, threshold=args.sequence_threshold)
+    print(f"\nSequenze di assorbimento ({args.sequence_threshold}+ consecutivi lato {args.sequence_side.upper()}):")
+    print(seq.to_string(index=False) if not seq.empty else "  nessuna")
+
+    if args.va_path:
+        va = load_value_area(args.va_path)
+        va_events_full = detect_va_events(df_5m, va, result_full)
+        va_events = va_events_full[va_events_full["datetime"] >= start_ts] if not va_events_full.empty else va_events_full
+        print(f"\nEventi Value Area: {len(va_events)}")
+        seq_va = analyze_absorption_sequences(va_events, side=args.sequence_side, threshold=args.sequence_threshold)
+        print(f"Sequenze di assorbimento VA ({args.sequence_threshold}+ consecutivi lato {args.sequence_side.upper()}):")
+        print(seq_va.to_string(index=False) if not seq_va.empty else "  nessuna")
 
     plot_result(result, events, out_path=args.out)
 
