@@ -283,6 +283,59 @@ def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def detect_absorptions_native(df_5m: pd.DataFrame, result_5m: pd.DataFrame,
+                               min_wick: float = 0.0) -> pd.DataFrame:
+    """
+    Versione del box che usa le stesse barre 5m sia per classificare le
+    fasi sia per cercare assorbimenti/breakout (nessun timeframe piu'
+    alto di riferimento). Per restare causale, il bordo usato per
+    valutare la barra t e' quello accumulato fino alla barra t-1
+    (shiftato di una barra: una barra non puo' rompere un bordo che ha
+    appena esteso lei stessa).
+    """
+    edge_upper_prior = result_5m["edge_upper"].shift()
+    edge_lower_prior = result_5m["edge_lower"].shift()
+    phase_prior = result_5m["phase"].shift()
+
+    merged = df_5m.copy()
+    merged["cvd_delta"] = merged["cvd"].diff() if "cvd" in merged.columns else np.nan
+    merged["edge_upper"] = edge_upper_prior
+    merged["edge_lower"] = edge_lower_prior
+    merged["phase_prior"] = phase_prior
+
+    events = []
+    for ts, row in merged.iterrows():
+        if row["phase_prior"] != "lateralita" or pd.isna(row["edge_upper"]):
+            continue
+
+        if row["high"] > row["edge_upper"] and row["close"] <= row["edge_upper"]:
+            wick_size = row["high"] - row["edge_upper"]
+            if wick_size >= min_wick:
+                events.append({"datetime": ts, "type": "assorbimento", "side": "top",
+                                "edge": row["edge_upper"], "extreme": row["high"],
+                                "close": row["close"], "wick_size": wick_size,
+                                "cvd_delta": row["cvd_delta"]})
+        if row["low"] < row["edge_lower"] and row["close"] >= row["edge_lower"]:
+            wick_size = row["edge_lower"] - row["low"]
+            if wick_size >= min_wick:
+                events.append({"datetime": ts, "type": "assorbimento", "side": "bottom",
+                                "edge": row["edge_lower"], "extreme": row["low"],
+                                "close": row["close"], "wick_size": wick_size,
+                                "cvd_delta": row["cvd_delta"]})
+        if row["close"] > row["edge_upper"]:
+            events.append({"datetime": ts, "type": "breakout", "side": "top",
+                            "edge": row["edge_upper"], "extreme": row["close"],
+                            "close": row["close"], "wick_size": np.nan,
+                            "cvd_delta": row["cvd_delta"]})
+        elif row["close"] < row["edge_lower"]:
+            events.append({"datetime": ts, "type": "breakout", "side": "bottom",
+                            "edge": row["edge_lower"], "extreme": row["close"],
+                            "close": row["close"], "wick_size": np.nan,
+                            "cvd_delta": row["cvd_delta"]})
+
+    return pd.DataFrame(events)
+
+
 def detect_absorptions(df_5m: pd.DataFrame, edges_30m: pd.DataFrame, min_wick: float = 0.0) -> pd.DataFrame:
     """
     Per ogni barra 5m, usa i bordi del box noti dall'ULTIMA barra 30m gia'
