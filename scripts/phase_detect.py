@@ -426,7 +426,15 @@ def evaluate_followthrough(events: pd.DataFrame, df_5m: pd.DataFrame,
                 row[f"move_{h}b"] = np.nan
                 row[f"prosegue_{h}b"] = np.nan
         rows.append(row)
-    return pd.DataFrame(rows)
+
+    out = pd.DataFrame(rows)
+    for h in horizons:
+        col = f"prosegue_{h}b"
+        if col in out.columns:
+            out[col] = out[col].astype("boolean")  # nullable bool: mean() ignora i NaN correttamente
+    if "cvd_confirmed" in out.columns:
+        out["cvd_confirmed"] = out["cvd_confirmed"].astype("boolean")
+    return out
 
 
 def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
