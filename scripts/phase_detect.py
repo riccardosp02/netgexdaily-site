@@ -293,6 +293,45 @@ def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def split_into_subranges(df_tf: pd.DataFrame, seg_start: pd.Timestamp, seg_end: pd.Timestamp,
+                          max_width: float = 15.0, min_bars: int = 3):
+    """
+    Una fase di lateralita' lunga puo' contenere PIU' box distinti (il
+    prezzo si sposta da una fascia di congestione all'altra senza che
+    lo z-score lo classifichi come vero 'impulso'). Segmenta in run
+    contigui dove il range delle chiusure resta entro 'max_width':
+    quando una nuova barra farebbe eccedere la larghezza massima, il
+    run corrente si chiude e ne parte uno nuovo da li'.
+
+    Ritorna una lista di (sub_start, sub_end) per ogni run con almeno
+    min_bars barre.
+    """
+    seg = df_tf.loc[seg_start:seg_end]
+    closes = seg["close"]
+    if len(closes) < min_bars:
+        return [(seg_start, seg_end)]
+
+    runs = []
+    run_start_idx = 0
+    run_low = run_high = closes.iloc[0]
+
+    for i in range(1, len(closes)):
+        c = closes.iloc[i]
+        new_low, new_high = min(run_low, c), max(run_high, c)
+        if new_high - new_low > max_width:
+            if i - run_start_idx >= min_bars:
+                runs.append((closes.index[run_start_idx], closes.index[i - 1]))
+            run_start_idx = i
+            run_low = run_high = c
+        else:
+            run_low, run_high = new_low, new_high
+
+    if len(closes) - run_start_idx >= min_bars:
+        runs.append((closes.index[run_start_idx], closes.index[-1]))
+
+    return runs if runs else [(seg_start, seg_end)]
+
+
 def build_congestion_box(df_tf: pd.DataFrame, seg_start: pd.Timestamp, seg_end: pd.Timestamp,
                           bin_size: float = 1.0, coverage: float = 0.7):
     """
