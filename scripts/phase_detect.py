@@ -349,9 +349,11 @@ def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
 
     Per ogni volta che il contatore raggiunge 'threshold', registra:
       - quanti ULTERIORI assorbimenti sullo stesso lato arrivano prima
-        del breakout sul lato opposto (0 se il breakout arriva subito dopo)
-      - se il breakout sul lato opposto arriva mai, o la sequenza resta
-        aperta (nessun breakout nel periodo analizzato)
+        della rottura (0 se la rottura arriva subito dopo la soglia)
+      - come si risolve: 'opposite' (rottura dal lato opposto, l'esito
+        "atteso"), 'same_side' (il bordo cede dallo STESSO lato degli
+        assorbimenti: la sequenza "fallisce"), o 'open' (nessuna rottura
+        nel periodo analizzato, sequenza ancora in corso)
     """
     if events.empty:
         return pd.DataFrame()
@@ -382,8 +384,8 @@ def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
                     "run_start": run_start, "threshold_reached_at_count": threshold,
                     "extra_absorptions_after_threshold": extra_after_threshold,
                     "total_absorptions_in_run": run_count,
-                    "opposite_breakout_time": row["datetime"],
-                    "opposite_breakout_close": row["close"], "resolved": True,
+                    "breakout_time": row["datetime"], "breakout_close": row["close"],
+                    "outcome": "opposite",
                 })
             run_count = 0
             run_start = None
@@ -392,7 +394,15 @@ def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
 
         elif row["type"] == "breakout" and row["side"] == side:
             # breakout nella stessa direzione degli assorbimenti: la sequenza
-            # "fallisce" (il bordo infine cede dallo stesso lato), si azzera
+            # "fallisce" (il bordo infine cede dallo stesso lato)
+            if triggered:
+                sequences.append({
+                    "run_start": run_start, "threshold_reached_at_count": threshold,
+                    "extra_absorptions_after_threshold": extra_after_threshold,
+                    "total_absorptions_in_run": run_count,
+                    "breakout_time": row["datetime"], "breakout_close": row["close"],
+                    "outcome": "same_side",
+                })
             run_count = 0
             run_start = None
             triggered = False
@@ -403,8 +413,8 @@ def analyze_absorption_sequences(events: pd.DataFrame, side: str = "top",
             "run_start": run_start, "threshold_reached_at_count": threshold,
             "extra_absorptions_after_threshold": extra_after_threshold,
             "total_absorptions_in_run": run_count,
-            "opposite_breakout_time": None, "opposite_breakout_close": None,
-            "resolved": False,
+            "breakout_time": None, "breakout_close": None,
+            "outcome": "open",
         })
 
     return pd.DataFrame(sequences)
