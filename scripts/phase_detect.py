@@ -441,6 +441,44 @@ def find_day_boxes(df_tf: pd.DataFrame, day_start: pd.Timestamp, day_end: pd.Tim
     return boxes
 
 
+def find_breakouts_5m(df_5m: pd.DataFrame, boxes: list) -> pd.DataFrame:
+    """
+    I box (range/durata) restano definiti come in find_day_boxes (sui
+    15m). Qui si cerca il momento ESATTO del breakout guardando le
+    chiusure a 5m dopo la fine di ciascun box: la prima barra 5m, dopo
+    box['end'], la cui chiusura esce dal range [lower, upper] del box.
+    E' solo un affinamento temporale (risoluzione piu' fine), non
+    cambia come i box vengono calcolati.
+    """
+    breakouts = []
+    for i, b in enumerate(boxes):
+        window_start = b["end"]
+        window_end = boxes[i + 1]["start"] if i + 1 < len(boxes) else df_5m.index.max()
+        window = df_5m.loc[window_start:window_end]
+        if window.empty:
+            continue
+
+        above = window[window["close"] > b["upper"]]
+        below = window[window["close"] < b["lower"]]
+        first_above = above.index[0] if not above.empty else None
+        first_below = below.index[0] if not below.empty else None
+
+        if first_above is not None and (first_below is None or first_above <= first_below):
+            ts, side, close = first_above, "top", window.loc[first_above, "close"]
+        elif first_below is not None:
+            ts, side, close = first_below, "bottom", window.loc[first_below, "close"]
+        else:
+            continue
+
+        breakouts.append({
+            "box_start": b["start"], "box_end": b["end"],
+            "box_lower": b["lower"], "box_upper": b["upper"],
+            "breakout_time": ts, "breakout_side": side, "breakout_close": close,
+        })
+
+    return pd.DataFrame(breakouts)
+
+
 def find_box_to_box_moves(df_tf: pd.DataFrame, result: pd.DataFrame,
                            events: pd.DataFrame, min_volume_ratio: float = 0.0) -> pd.DataFrame:
     """
