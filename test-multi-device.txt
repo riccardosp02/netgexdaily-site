@@ -1,0 +1,2 @@
+Test multi-device sync - creato il 2026-10-09 04:41 UTC
+Questo file verifica che Claude Code funzioni correttamente da più dispositivi sullo stesso branch.
