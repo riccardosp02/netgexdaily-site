@@ -1,0 +1,88 @@
+//@version=5
+indicator("Box congestione + breakout (causale)", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
+
+// ============================================================
+// Replica della logica Python (split_into_subranges + find_breakouts):
+//   - un box si costruisce in avanti, barra per barra, SENZA mai
+//     guardare il futuro: estende il suo min/max finche' il range
+//     resta entro maxWidth; alla barra che lo farebbe sforare, il
+//     box corrente si chiude e ne parte uno nuovo da li'.
+//   - il breakout e' la prima chiusura, su un timeframe piu' fine,
+//     che esce dal range del box dopo che questo si e' chiuso.
+// ============================================================
+
+maxWidth   = input.float(18.0, "Ampiezza massima box (punti)", minval=0.1)
+minBars    = input.int(4, "Barre minime per considerare valido un box", minval=2)
+breakoutTF = input.timeframe("5", "Timeframe per rilevare il breakout (piu' fine del grafico)")
+
+var float runLow      = na
+var float runHigh     = na
+var int   runStartIdx = na
+var int   runBars     = 0
+
+var box   curBox   = na
+var float boxLower = na
+var float boxUpper = na
+var int   boxEndBarIdx = na
+var bool  boxActive = false   // true mentre il box e' ancora "aperto" (si puo' ancora allargare)
+
+// --- costruzione del box, SOLO con dati gia' noti alla barra corrente ---
+newLow  = na(runLow)  ? close : math.min(runLow, close)
+newHigh = na(runHigh) ? close : math.max(runHigh, close)
+
+if na(runLow) or (newHigh - newLow) <= maxWidth
+    // la barra corrente entra nel box in costruzione
+    runLow := newLow
+    runHigh := newHigh
+    runBars := runBars + 1
+    if na(runStartIdx)
+        runStartIdx := bar_index
+
+    if runBars >= minBars
+        if na(curBox)
+            curBox := box.new(left=runStartIdx, top=runHigh, right=bar_index, bottom=runLow,
+                               border_color=color.new(color.orange, 0), bg_color=color.new(color.orange, 87),
+                               border_width=1, extend=extend.none)
+        else
+            box.set_top(curBox, runHigh)
+            box.set_bottom(curBox, runLow)
+            box.set_right(curBox, bar_index)
+        boxLower := runLow
+        boxUpper := runHigh
+        boxEndBarIdx := bar_index
+        boxActive := true
+else
+    // la barra corrente farebbe sforare il tetto: il box corrente si
+    // chiude qui (se esiste), e se ne apre uno nuovo da questa barra
+    boxActive := false
+    curBox := na
+    runLow := close
+    runHigh := close
+    runStartIdx := bar_index
+    runBars := 1
+
+// --- breakout: chiusura sul timeframe piu' fine fuori dal box chiuso ---
+fineClose = request.security(syminfo.tickerid, breakoutTF, close, lookahead=barmerge.lookahead_off)
+
+var float lastClosedLower = na
+var float lastClosedUpper = na
+var int   lastClosedEndBar = na
+var bool  breakoutDoneForThisBox = true
+
+// quando il box smette di allargarsi (si e' chiuso), memorizza i suoi bordi
+boxJustClosed = boxActive[1] and not boxActive
+if boxJustClosed
+    lastClosedLower := boxLower[1]
+    lastClosedUpper := boxUpper[1]
+    lastClosedEndBar := boxEndBarIdx[1]
+    breakoutDoneForThisBox := false
+
+if not na(lastClosedLower) and not breakoutDoneForThisBox and bar_index > lastClosedEndBar
+    if fineClose > lastClosedUpper
+        label.new(bar_index, fineClose, "BO top\n" + str.tostring(fineClose, format.mintick),
+                  style=label.style_label_down, color=color.blue, textcolor=color.white, size=size.small)
+        breakoutDoneForThisBox := true
+    else if fineClose < lastClosedLower
+        label.new(bar_index, fineClose, "BO bottom\n" + str.tostring(fineClose, format.mintick),
+                  style=label.style_label_up, color=color.blue, textcolor=color.white, size=size.small)
+        breakoutDoneForThisBox := true
