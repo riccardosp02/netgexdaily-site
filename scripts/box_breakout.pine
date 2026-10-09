@@ -41,7 +41,7 @@ if na(runLow) or (newHigh - newLow) <= maxWidth
     if runBars >= minBars
         if na(curBox)
             curBox := box.new(left=runStartIdx, top=runHigh, right=bar_index, bottom=runLow,
-                               border_color=color.new(color.orange, 0), bg_color=color.new(color.orange, 87),
+                               border_color=color.new(color.orange, 0), bgcolor=color.new(color.orange, 87),
                                border_width=1, extend=extend.none)
         else
             box.set_top(curBox, runHigh)
