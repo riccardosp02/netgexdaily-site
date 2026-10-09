@@ -118,11 +118,17 @@ def apply_min_duration(result_30m: pd.DataFrame, min_bars: int) -> pd.DataFrame:
 
 def refine_signal_start(df_5m: pd.DataFrame, result_30m: pd.DataFrame) -> pd.DataFrame:
     """
-    Per ogni transizione lateralita'->impulso, la barra 30m segnala il
-    cambio solo alla sua chiusura. Qui si cerca, dentro le 5m di quella
-    finestra da 30 minuti, il punto di inversione reale (il massimo prima
-    di un impulso ribassista, il minimo prima di uno rialzista): quello
-    e' il momento in cui il movimento e' davvero iniziato.
+    Per ogni transizione lateralita'->impulso vengono riportati due momenti,
+    entrambi causali (nessun dato futuro rispetto al loro istante):
+
+      - pivot_time / tipo "assorbimento": il massimo (per un impulso
+        ribassista) o il minimo (per uno rialzista) toccato PRIMA che il
+        movimento partisse davvero. E' il punto dove il mercato ha
+        respinto un'aggressione, non ancora una rottura.
+      - breakout_time / tipo "breakout confermato": la prima barra 5m la
+        cui CHIUSURA e' gia' fuori dal bordo del box noto fino a quel
+        momento (edge_upper/edge_lower della barra 30m precedente). E'
+        la prima conferma che il prezzo non e' piu' dentro il range.
     """
     transitions = result_30m[
         (result_30m["phase"] == "impulso") & (result_30m["phase"].shift() == "lateralita")
@@ -143,10 +149,31 @@ def refine_signal_start(df_5m: pd.DataFrame, result_30m: pd.DataFrame) -> pd.Dat
             pivot_time = window["close"].idxmax()
         else:
             pivot_time = window["close"].idxmin()
+        pivot_close = window.loc[pivot_time, "close"]
+
+        # bordo del box noto fino a quel momento: ultima barra 30m lateral
+        # gia' chiusa prima del pivot (nessun dato oltre quell'istante)
+        prior_closed = result_30m[result_30m.index <= pivot_time]
+        breakout_time, breakout_close = None, None
+        if not prior_closed.empty and prior_closed.iloc[-1]["phase"] == "lateralita" \
+                and "edge_upper" in prior_closed.columns:
+            edge_upper = prior_closed["edge_upper"].iloc[-1]
+            edge_lower = prior_closed["edge_lower"].iloc[-1]
+            after_pivot = window.loc[pivot_time:]
+            if direction == "down" and not pd.isna(edge_lower):
+                outside = after_pivot[after_pivot["close"] < edge_lower]
+            elif direction == "up" and not pd.isna(edge_upper):
+                outside = after_pivot[after_pivot["close"] > edge_upper]
+            else:
+                outside = after_pivot.iloc[0:0]
+            if not outside.empty:
+                breakout_time = outside.index[0]
+                breakout_close = outside["close"].iloc[0]
 
         refined.append({
             "bar_30m_end": end_time, "direction": direction,
-            "signal_start_5m": pivot_time, "pivot_close": window.loc[pivot_time, "close"],
+            "pivot_time": pivot_time, "pivot_close": pivot_close,
+            "breakout_time": breakout_time, "breakout_close": breakout_close,
         })
 
     return pd.DataFrame(refined)
@@ -336,8 +363,12 @@ def main():
     if not refined.empty:
         print("\nInizio segnale (raffinato sulle 5m):")
         for _, r in refined.iterrows():
-            print(f"  barra 30m chiusa {r['bar_30m_end']}  ({r['direction']})  "
-                  f"-> inizio reale {r['signal_start_5m']}  (pivot close={r['pivot_close']:.2f})")
+            print(f"  barra 30m chiusa {r['bar_30m_end']}  ({r['direction']})")
+            print(f"    assorbimento: {r['pivot_time']}  (close={r['pivot_close']:.2f})")
+            if r["breakout_time"] is not None:
+                print(f"    breakout confermato: {r['breakout_time']}  (close={r['breakout_close']:.2f})")
+            else:
+                print(f"    breakout confermato: n/d (nessun bordo di riferimento)")
 
     current = result.iloc[-1]
     print(f"\nFase attuale: {current['phase'].upper()}  "
