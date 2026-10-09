@@ -27,6 +27,20 @@ def load_data(path: str) -> pd.DataFrame:
     return df
 
 
+def load_value_area(path: str) -> pd.DataFrame:
+    """
+    Carica un CSV di Value Area (date,time,price,vah,val,volume). vah/val
+    sono gia' calcolati causalmente barra per barra (nessun dato futuro),
+    quindi si possono usare direttamente come bordo "corto" e reattivo,
+    alternativo al box 30m accumulato. Rimuove eventuali righe duplicate.
+    """
+    df = pd.read_csv(path)
+    df.columns = [c.strip().lower() for c in df.columns]
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
+    df = df.drop_duplicates(subset="datetime").set_index("datetime").sort_index()
+    return df[["price", "vah", "val", "volume"]]
+
+
 def resample_30m(df: pd.DataFrame) -> pd.DataFrame:
     """
     OHLC a 30 minuti. Il bin [T, T+30m) viene etichettato con end_time = T+30m,
@@ -177,6 +191,64 @@ def refine_signal_start(df_5m: pd.DataFrame, result_30m: pd.DataFrame) -> pd.Dat
         })
 
     return pd.DataFrame(refined)
+
+
+def detect_va_events(df_5m: pd.DataFrame, va: pd.DataFrame,
+                      result_30m: pd.DataFrame = None) -> pd.DataFrame:
+    """
+    Usa VAH/VAL (gia' causali, aggiornati ogni 5m) come bordo di
+    riferimento al posto del box 30m accumulato.
+
+    Riporta solo le TRANSIZIONI (prima barra fuori dopo un tratto dentro
+    il VA), non ogni barra: altrimenti, essendo il VA molto stretto,
+    segnala quasi in continuazione.
+
+      - assorbimento: wick (high/low) fuori dal bordo, chiusura rientrata
+        dentro
+      - breakout: prima chiusura che esce dal bordo dopo essere stata
+        dentro nella barra precedente
+
+    Se result_30m e' passato, include solo eventi mentre la fase (30m,
+    nota fino a quel momento) e' 'lateralita'. Il delta di CVD, se
+    presente in df_5m, conferma la direzione.
+    """
+    merged = df_5m.join(va[["vah", "val"]], how="inner")
+    if "cvd" in merged.columns:
+        merged["cvd_delta"] = merged["cvd"].diff()
+    else:
+        merged["cvd_delta"] = np.nan
+
+    if result_30m is not None:
+        ref = result_30m[["phase"]].reset_index()
+        merged = pd.merge_asof(
+            merged.reset_index().rename(columns={"datetime": "ts"}).sort_values("ts"),
+            ref.sort_values("end_time"), left_on="ts", right_on="end_time", direction="backward"
+        ).set_index("ts")
+        merged = merged[merged["phase"] == "lateralita"]
+
+    was_above = merged["close"].shift() > merged["vah"].shift()
+    was_below = merged["close"].shift() < merged["val"].shift()
+
+    events = []
+    for ts, row in merged.iterrows():
+        if row["high"] > row["vah"] and row["close"] <= row["vah"]:
+            events.append({"datetime": ts, "type": "assorbimento", "side": "top",
+                            "edge": row["vah"], "extreme": row["high"], "close": row["close"],
+                            "cvd_delta": row["cvd_delta"]})
+        if row["low"] < row["val"] and row["close"] >= row["val"]:
+            events.append({"datetime": ts, "type": "assorbimento", "side": "bottom",
+                            "edge": row["val"], "extreme": row["low"], "close": row["close"],
+                            "cvd_delta": row["cvd_delta"]})
+        if row["close"] > row["vah"] and not was_above.loc[ts]:
+            events.append({"datetime": ts, "type": "breakout", "side": "top",
+                            "edge": row["vah"], "extreme": row["close"], "close": row["close"],
+                            "cvd_delta": row["cvd_delta"]})
+        elif row["close"] < row["val"] and not was_below.loc[ts]:
+            events.append({"datetime": ts, "type": "breakout", "side": "bottom",
+                            "edge": row["val"], "extreme": row["close"], "close": row["close"],
+                            "cvd_delta": row["cvd_delta"]})
+
+    return pd.DataFrame(events)
 
 
 def build_running_edges(result_30m: pd.DataFrame) -> pd.DataFrame:
