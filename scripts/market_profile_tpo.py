@@ -108,6 +108,69 @@ def plot_profile(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, pr
         plt.show()
 
 
+def plot_daily_profile(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, profile: dict,
+                        out_path: str = None):
+    """
+    Rappresentazione classica: UNA candela daily (open/high/low/close
+    dell'intera giornata) a sinistra, profilo TPO (lettere per livello
+    di prezzo) a destra. POC in rosso, Value Area tratteggiata in viola.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    day = df_5m.loc[start:end]
+    o, h, l, c = day["open"].iloc[0], day["high"].max(), day["low"].min(), day["close"].iloc[-1]
+
+    levels, tpo = profile["levels"], profile["tpo"]
+    poc, val, vah = profile["poc"], profile["val"], profile["vah"]
+    n_rows = len(levels)
+
+    row_h_inch = 0.16
+    fig_h = max(8, n_rows * row_h_inch)
+    fig, (ax_candle, ax_profile) = plt.subplots(
+        1, 2, figsize=(14, fig_h), sharey=True, gridspec_kw={"width_ratios": [1, 6]}
+    )
+
+    color = "green" if c >= o else "red"
+    ax_candle.vlines(0, l, h, color="black", linewidth=1)
+    ax_candle.add_patch(patches.Rectangle((-0.3, min(o, c)), 0.6, max(abs(c - o), (h - l) * 0.01),
+                                           facecolor=color, edgecolor="black"))
+    ax_candle.set_xlim(-1, 1)
+    ax_candle.set_xticks([])
+    ax_candle.set_title(f"{start.date()}\nO={o:.2f} H={h:.2f}\nL={l:.2f} C={c:.2f}", fontsize=10)
+
+    for lvl in levels:
+        letters = "".join(sorted(tpo[lvl]))
+        is_va = val <= lvl <= vah
+        is_poc = lvl == poc
+        color_bar = "red" if is_poc else ("purple" if is_va else "gray")
+        ax_profile.text(0, lvl, letters, fontsize=7, family="monospace",
+                         color=color_bar, va="center", ha="left",
+                         fontweight="bold" if is_poc else "normal")
+
+    ax_profile.axhline(poc, color="red", linewidth=1, alpha=0.4)
+    ax_profile.axhline(val, color="purple", linewidth=1, linestyle="--", alpha=0.4)
+    ax_profile.axhline(vah, color="purple", linewidth=1, linestyle="--", alpha=0.4)
+    max_count = max(profile["counts"].values())
+    ax_profile.set_xlim(0, max_count * 0.62)
+    ax_profile.set_xticks([])
+    ax_profile.set_title(f"TPO Profile  |  POC={poc:.2f}  VA=[{val:.2f}-{vah:.2f}]  "
+                          f"IB=[{profile['ib_low']:.2f}-{profile['ib_high']:.2f}]", fontsize=10)
+    ax_profile.set_ylim(levels[0] - 2, levels[-1] + 2)
+
+    for ax in (ax_candle, ax_profile):
+        ax.grid(axis="y", alpha=0.15)
+
+    fig.suptitle(f"Market Profile (TPO) — {start.date()}", fontsize=13)
+    fig.tight_layout()
+
+    if out_path:
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        print(f"Grafico salvato in {out_path}")
+    else:
+        plt.show()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_path")
@@ -117,6 +180,8 @@ def main():
     parser.add_argument("--period-min", type=int, default=30, help="Minuti per periodo/lettera")
     parser.add_argument("--va-coverage", type=float, default=0.70)
     parser.add_argument("--timeframe", default="15min", help="Timeframe candele nel grafico")
+    parser.add_argument("--daily", action="store_true",
+                         help="Mostra una candela daily unica + profilo TPO a lato, invece delle candele intraday")
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
@@ -130,6 +195,10 @@ def main():
     print(f"Value Area: {profile['val']:.2f} - {profile['vah']:.2f}  "
           f"(copertura {profile['va_coverage']*100:.0f}%)")
     print(f"Initial Balance: {profile['ib_low']:.2f} - {profile['ib_high']:.2f}")
+
+    if args.daily:
+        plot_daily_profile(df_5m, start, end, profile, out_path=args.out)
+        return
 
     plot_profile(df_5m, start, end, profile, timeframe=args.timeframe, out_path=args.out)
 
