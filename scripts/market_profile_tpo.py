@@ -208,6 +208,7 @@ def _density_zones(levels, counts, threshold: float = 0.30, gap: float = 1.0, ma
     """Cluster di livelli con valore >= threshold*picco, uniti se la
     distanza tra livelli caldi consecutivi e' <= gap; ritorna i max_zones
     cluster con massa totale piu' alta, ordinati per prezzo."""
+    levels = list(levels)
     if not levels:
         return []
     peak = max(counts.values())
@@ -245,10 +246,10 @@ def plot_triple_panel(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestam
     o, h, l, c = day["open"].iloc[0], day["high"].max(), day["low"].min(), day["close"].iloc[-1]
 
     tpo_levels, tpo_counts = tpo_profile["levels"], tpo_profile["counts"]
-    tpo_zones = _density_zones(tpo_levels, tpo_counts, zone_threshold, zone_gap, max_zones)
+    tpo_vah, tpo_val = tpo_profile["vah"], tpo_profile["val"]
 
     vol_levels, vol_counts = vol_profile["levels"], vol_profile["counts"]
-    vah, val = vol_profile["vah"], vol_profile["val"]
+    vol_zones = _density_zones(vol_levels, vol_counts, zone_threshold, zone_gap, max_zones)
     vol_poc = vol_profile["poc"]
 
     fig, (ax_candle, ax_tpo, ax_vol) = plt.subplots(
@@ -268,28 +269,29 @@ def plot_triple_panel(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestam
     ax_candle.set_xticks([])
     ax_candle.set_title(str(start.date()), color="white", fontsize=10)
 
-    def in_tpo_zone(lvl):
-        return any(z[0] <= lvl <= z[1] for z in tpo_zones)
-
     for lvl in tpo_levels:
-        color_bar = "orange" if in_tpo_zone(lvl) else "gray"
+        is_va = tpo_val <= lvl <= tpo_vah
+        color_bar = "white" if is_va else "gray"
         ax_tpo.barh(lvl, tpo_counts[lvl], height=(tpo_levels[1] - tpo_levels[0]) if len(tpo_levels) > 1 else 0.25,
                     color=color_bar, edgecolor="none")
+    ax_tpo.axhline(tpo_vah, color="yellow", linewidth=1.2, linestyle="--", alpha=0.9)
+    ax_tpo.axhline(tpo_val, color="yellow", linewidth=1.2, linestyle="--", alpha=0.9)
     ax_tpo.set_title(
-        f"Market Profile (TPO)  POC={tpo_profile['poc']:.2f}  " +
-        "  ".join(f"Zona[{z[0]:.2f}-{z[1]:.2f}]" for z in tpo_zones),
+        f"Market Profile (TPO)  POC={tpo_profile['poc']:.2f}  VAH={tpo_vah:.2f}  VAL={tpo_val:.2f}",
         color="white", fontsize=9,
     )
 
+    def in_vol_zone(lvl):
+        return any(z[0] <= lvl <= z[1] for z in vol_zones)
+
     for lvl in vol_levels:
-        is_va = val <= lvl <= vah
-        color_bar = "white" if is_va else "gray"
+        is_poc = lvl == vol_poc
+        color_bar = "yellow" if is_poc else ("orange" if in_vol_zone(lvl) else "gray")
         ax_vol.barh(lvl, vol_counts[lvl], height=(vol_levels[1] - vol_levels[0]) if len(vol_levels) > 1 else 0.25,
                     color=color_bar, edgecolor="none")
-    ax_vol.axhline(vah, color="yellow", linewidth=1.2, linestyle="--", alpha=0.9)
-    ax_vol.axhline(val, color="yellow", linewidth=1.2, linestyle="--", alpha=0.9)
     ax_vol.set_title(
-        f"Volume Profile  POC={vol_poc:.2f}  VAH={vah:.2f}  VAL={val:.2f}",
+        f"Volume Profile  POC={vol_poc:.2f}  " +
+        "  ".join(f"Zona[{z[0]:.2f}-{z[1]:.2f}]" for z in vol_zones),
         color="white", fontsize=9,
     )
 
