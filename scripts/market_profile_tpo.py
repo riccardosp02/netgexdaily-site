@@ -228,6 +228,69 @@ def _density_zones(levels, counts, threshold: float = 0.30, gap: float = 1.0, ma
     return sorted(zones[:max_zones])
 
 
+def plot_tpo_with_volume_zones(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp,
+                                tpo_profile: dict, vol_profile: dict,
+                                zone_threshold: float = 0.30, zone_gap: float = 1.0, max_zones: int = 2,
+                                out_path: str = None):
+    """
+    Candela daily + profilo TPO, MA le barre arancioni sono quelle il cui
+    livello di prezzo cade dentro le zone dense calcolate sul VOLUME
+    PROFILE (volume reale), non sul TPO stesso: replica l'aspetto
+    dell'indicatore ATAS, che disegna il profilo a barre come TPO/tempo
+    ma evidenzia le aree calde usando il volume reale scambiato.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
+    day = df_5m.loc[start:end]
+    o, h, l, c = day["open"].iloc[0], day["high"].max(), day["low"].min(), day["close"].iloc[-1]
+
+    tpo_levels, tpo_counts = tpo_profile["levels"], tpo_profile["counts"]
+    poc = tpo_profile["poc"]
+
+    vol_levels, vol_counts = vol_profile["levels"], vol_profile["counts"]
+    vol_zones = _density_zones(vol_levels, vol_counts, zone_threshold, zone_gap, max_zones)
+
+    fig, (ax_candle, ax_profile) = plt.subplots(
+        1, 2, figsize=(10, 10), sharey=True, gridspec_kw={"width_ratios": [1, 5]},
+        facecolor="black",
+    )
+    for ax in (ax_candle, ax_profile):
+        ax.set_facecolor("black")
+        ax.tick_params(colors="white")
+        ax.grid(axis="y", alpha=0.1, color="gray")
+
+    color = "cyan" if c >= o else "red"
+    ax_candle.vlines(0, l, h, color="white", linewidth=1)
+    ax_candle.add_patch(patches.Rectangle((-0.3, min(o, c)), 0.6, max(abs(c - o), (h - l) * 0.01),
+                                           facecolor=color, edgecolor="white"))
+    ax_candle.set_xlim(-1, 1)
+    ax_candle.set_xticks([])
+    ax_candle.set_title(str(start.date()), color="white", fontsize=10)
+
+    def in_vol_zone(lvl):
+        return any(z[0] <= lvl <= z[1] for z in vol_zones)
+
+    for lvl in tpo_levels:
+        color_bar = "orange" if in_vol_zone(lvl) else "gray"
+        ax_profile.barh(lvl, tpo_counts[lvl], height=(tpo_levels[1] - tpo_levels[0]) if len(tpo_levels) > 1 else 0.25,
+                         color=color_bar, edgecolor="none")
+
+    ax_profile.axhline(poc, color="yellow", linewidth=1.2, alpha=0.8)
+    ax_profile.set_title(
+        f"Market Profile (TPO), zone da Volume Profile  POC(TPO)={poc:.2f}  " +
+        "  ".join(f"Zona[{z[0]:.2f}-{z[1]:.2f}]" for z in vol_zones),
+        color="white", fontsize=9,
+    )
+
+    fig.tight_layout()
+    if out_path:
+        fig.savefig(out_path, dpi=150, bbox_inches="tight", facecolor="black")
+        print(f"Grafico salvato in {out_path}")
+    else:
+        plt.show()
+
+
 def plot_triple_panel(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp,
                        tpo_profile: dict, vol_profile: dict,
                        zone_threshold: float = 0.30, zone_gap: float = 1.0, max_zones: int = 2,
