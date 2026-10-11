@@ -167,7 +167,7 @@ def plot_volume_profile(vp: pd.Series, profile: dict, day: pd.Timestamp = None,
 
     if ohlc_day:
         o, h, l, c = ohlc_day["open"], ohlc_day["high"], ohlc_day["low"], ohlc_day["close"]
-        color = "lime" if c >= o else "red"
+        color = "cyan" if c >= o else "red"
         ax_candle.vlines(0, l, h, color="white", linewidth=1)
         ax_candle.add_patch(patches.Rectangle((-0.3, min(o, c)), 0.6, max(abs(c - o), (h - l) * 0.01),
                                                facecolor=color, edgecolor="white"))
