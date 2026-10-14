@@ -3,49 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>netgexdaily — Net gamma exposure on SPX and NDX</title>
+<title>Options Flow — Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F3F4F0;
-    --bg-alt:#EAEBE4;
-    --ink:#15181A;
-    --ink-soft:#565C57;
-    --line:#D6D8CF;
-    --teal:#0F6E56;
-    --teal-soft:#DCEEE7;
-    --rust:#B3441F;
-    --rust-soft:#F5E1D6;
+    --bg:#F3F4F0; --bg-alt:#EAEBE4; --ink:#15181A; --ink-soft:#565C57; --line:#D6D8CF;
+    --teal:#0F6E56; --teal-soft:#DCEEE7; --rust:#B3441F; --rust-soft:#F5E1D6;
     --serif:'Newsreader',Georgia,serif;
     --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
     --mono:'IBM Plex Mono','SFMono-Regular',Menlo,monospace;
   }
   *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font-family:var(--sans); line-height:1.6; font-size:16px;
-  }
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.6; font-size:16px;}
   a{color:inherit;}
-  .wrap{max-width:920px; margin:0 auto; padding:0 28px;}
-
-  /* Nav */
-  header.site{
-    border-bottom:1px solid var(--line);
-    position:sticky; top:0; background:var(--bg); z-index:10;
-  }
-  .navrow{
-    max-width:920px; margin:0 auto; padding:18px 28px;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .brand{
-    font-family:var(--mono); font-size:14px; font-weight:500; letter-spacing:0.02em;
-    text-decoration:none; display:flex; align-items:center; gap:8px;
-  }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 28px;}
+  header.site{border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:10;}
+  .navrow{max-width:1000px; margin:0 auto; padding:18px 28px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{font-family:var(--mono); font-size:14px; font-weight:500; text-decoration:none; display:flex; align-items:center; gap:8px;}
   .brand .dot{width:7px; height:7px; border-radius:50%; background:var(--teal); display:inline-block;}
-  nav.links{display:flex; gap:26px; font-size:14px;}
+  nav.links{display:flex; gap:22px; font-size:14px;}
   nav.links a{text-decoration:none; color:var(--ink-soft); border-bottom:1px solid transparent; padding-bottom:2px;}
   nav.links a:hover{color:var(--ink); border-bottom-color:var(--ink);}
   .langswitch{display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px;}
@@ -53,92 +31,91 @@
   .langswitch a.active{color:var(--ink); font-weight:600;}
   .langswitch span{color:var(--line);}
 
-  /* Hero */
-  .hero{padding:76px 0 40px;}
-  .hero .kicker{
-    font-family:var(--mono); font-size:13px; color:var(--ink-soft);
-    display:flex; align-items:center; gap:10px; margin-bottom:22px;
-  }
-  .hero .kicker .rule{flex:1; height:1px; background:var(--line);}
-  h1{
-    font-family:var(--serif); font-weight:500; font-size:44px; line-height:1.15;
-    margin:0 0 22px; max-width:15ch; letter-spacing:-0.01em;
-  }
-  .hero p.lead{
-    font-size:18px; color:var(--ink-soft); max-width:56ch; margin:0 0 34px;
-  }
-  .hero .ctas{display:flex; gap:14px; flex-wrap:wrap;}
-  .btn{
-    font-family:var(--sans); font-size:14px; font-weight:500; text-decoration:none;
-    padding:11px 20px; border:1px solid var(--ink); color:var(--ink);
-    display:inline-block; transition:background .15s, color .15s;
-  }
+  .btn{font-size:14px; font-weight:500; text-decoration:none; padding:11px 20px; border:1px solid var(--ink); color:var(--ink); display:inline-block; transition:background .15s,color .15s;}
   .btn.primary{background:var(--ink); color:var(--bg);}
   .btn.primary:hover{background:var(--teal); border-color:var(--teal);}
   .btn:not(.primary):hover{background:var(--ink); color:var(--bg);}
 
-  /* Zero-line motif */
-  .motif{margin:52px 0 8px;}
-  .motif svg{display:block; width:100%; height:auto;}
+  .kicker{font-family:var(--mono); font-size:12.5px; color:var(--teal); letter-spacing:.02em; margin-bottom:16px;}
+  h1{font-family:var(--serif); font-weight:500; font-size:50px; line-height:1.1; letter-spacing:-0.015em; margin:0 0 20px;}
+  h2{font-family:var(--serif); font-weight:500; font-size:30px; letter-spacing:-0.01em; margin:0 0 10px;}
+  h3{font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 6px;}
+  .lead{font-size:18px; color:var(--ink-soft); max-width:52ch; margin:0 0 28px;}
+  .sec-sub{color:var(--ink-soft); max-width:60ch; margin:0 0 30px;}
 
-  /* Section generic */
-  section{padding:56px 0; border-top:1px solid var(--line);}
-  section .label{
-    font-family:var(--mono); font-size:12px; color:var(--ink-soft);
-    text-transform:none; margin-bottom:14px;
-  }
-  h2{font-family:var(--serif); font-weight:500; font-size:28px; margin:0 0 18px; letter-spacing:-0.01em;}
-  section p{color:var(--ink-soft); max-width:62ch; font-size:15.5px;}
+  /* hero */
+  .hero{padding:72px 0 64px; display:grid; grid-template-columns:1.05fr 1fr; gap:48px; align-items:center;}
+  .cta{display:flex; gap:12px; flex-wrap:wrap;}
+  .chartbox{border:1px solid var(--line); background:#fff; padding:14px 14px 10px;}
+  .chartbox .bar{display:flex; justify-content:space-between; font-family:var(--mono); font-size:11px; color:var(--ink-soft); margin-bottom:6px;}
+  .chartbox .legend{display:flex; gap:14px; font-family:var(--mono); font-size:10.5px; color:var(--ink-soft); margin-top:6px; flex-wrap:wrap;}
+  .legend i{display:inline-block; width:14px; height:2px; vertical-align:middle; margin-right:5px;}
 
-  /* Project tiles */
-  .tiles{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); margin-top:28px;}
-  .tile{background:var(--bg); padding:26px 24px; text-decoration:none; color:var(--ink); display:block;}
-  .tile:hover{background:var(--bg-alt);}
-  .tile .idx{font-family:var(--mono); font-size:12px; color:var(--ink-soft); margin-bottom:14px; display:block;}
-  .tile h3{font-family:var(--serif); font-size:22px; font-weight:500; margin:0 0 8px;}
-  .tile p{margin:0; font-size:14px; color:var(--ink-soft);}
-  .tile .go{font-family:var(--mono); font-size:12px; margin-top:16px; display:inline-block; color:var(--teal);}
+  /* numbers */
+  .numbers{border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--bg-alt);}
+  .numgrid{display:grid; grid-template-columns:repeat(4,1fr);}
+  .num{padding:28px 22px; border-left:1px solid var(--line);}
+  .num:first-child{border-left:none; padding-left:0;}
+  .num b{display:block; font-family:var(--serif); font-weight:500; font-size:40px; line-height:1; margin-bottom:8px;}
+  .num span{font-size:13.5px; color:var(--ink-soft);}
 
-  /* pipeline teaser */
-  .steps{display:flex; flex-direction:column; margin-top:24px; border-top:1px solid var(--line);}
-  .step{display:flex; gap:20px; padding:16px 0; border-bottom:1px solid var(--line); align-items:baseline;}
-  .step .n{font-family:var(--mono); font-size:12px; color:var(--ink-soft); width:20px; flex-shrink:0;}
-  .step .t{font-size:15px;}
-  .step .t b{font-weight:500;}
+  section.block{padding:72px 0 0;}
+  .cards3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .card{border:1px solid var(--line); padding:22px; background:var(--bg);}
+  .card .tag{font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:10px;}
+  .card p{margin:0; font-size:14.5px; color:var(--ink-soft);}
 
-  /* stack badges */
-  .stack{display:flex; flex-wrap:wrap; gap:9px; margin-top:22px;}
-  .badge{
-    font-family:var(--mono); font-size:12.5px; padding:6px 12px;
-    border:1px solid var(--line); color:var(--ink-soft); background:var(--bg-alt);
-  }
+  /* pipeline strip */
+  .strip{display:grid; grid-template-columns:repeat(5,1fr); border:1px solid var(--line);}
+  .step{padding:18px 16px; border-left:1px solid var(--line); font-size:13.5px;}
+  .step:first-child{border-left:none;}
+  .step em{display:block; font-style:normal; font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;}
+  .step b{display:block; font-weight:600; margin-bottom:4px;}
+  .step span{color:var(--ink-soft); font-size:12.5px;}
 
-  /* footer */
-  footer{border-top:1px solid var(--line); padding:44px 0 60px;}
-  footer .cols{display:grid; grid-template-columns:1.4fr 1fr; gap:40px;}
-  footer h4{font-family:var(--sans); font-size:13px; font-weight:600; margin:0 0 10px;}
-  footer p{color:var(--ink-soft); font-size:14px; max-width:48ch; margin:0 0 10px;}
-  footer .social{display:flex; gap:16px; font-size:14px; margin-top:6px;}
-  footer .social a{text-decoration:none; border-bottom:1px solid var(--line);}
-  footer .social a:hover{border-bottom-color:var(--ink);}
-  .disclaimer{
-    margin-top:30px; padding-top:20px; border-top:1px solid var(--line);
-    font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);
-  }
+  .strat{display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; border:1px solid var(--line); padding:18px 22px; margin-bottom:12px;}
+  .strat p{margin:0; font-size:14px; color:var(--ink-soft); max-width:60ch;}
 
-  @media (max-width:640px){
-    h1{font-size:32px;}
-    .tiles{grid-template-columns:1fr;}
-    footer .cols{grid-template-columns:1fr;}
+  .badges{display:flex; flex-wrap:wrap; gap:8px;}
+  .badge{font-family:var(--mono); font-size:12px; border:1px solid var(--line); padding:5px 11px; background:var(--bg);}
+
+  .contact{margin-top:80px; background:var(--ink); color:var(--bg); padding:56px 0;}
+  .contact h2{color:var(--bg);}
+  .contact p{color:#B9BEB7; max-width:56ch; margin:0 0 26px;}
+  .contact .btn{border-color:var(--bg); color:var(--bg);}
+  .contact .btn.primary{background:var(--bg); color:var(--ink);}
+  .contact .btn.primary:hover{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .contact .btn:not(.primary):hover{background:var(--bg); color:var(--ink);}
+
+  footer{padding:28px 0 48px; font-size:13px; color:var(--ink-soft);}
+  .draftflag{background:var(--rust-soft); color:var(--rust); font-family:var(--mono); font-size:12px; text-align:center; padding:6px;}
+
+  @media (max-width:820px){
+    .hero{grid-template-columns:1fr; padding-top:44px;}
+    h1{font-size:36px;}
+    .cards3{grid-template-columns:1fr;}
+    .numgrid{grid-template-columns:1fr 1fr;}
+    .num:nth-child(3){border-left:none; padding-left:0;}
+    .strip{grid-template-columns:1fr;}
+    .step{border-left:none; border-top:1px solid var(--line);}
+    .step:first-child{border-top:none;}
     nav.links{display:none;}
   }
+  .flow{display:flex; align-items:stretch; gap:0; margin-top:8px;}
+  .fbox{flex:1; border:1px solid var(--line); background:#fff; padding:18px 16px;}
+  .fbox.ai{border-color:var(--teal); background:var(--teal-soft);}
+  .fbox em{display:block; font-style:normal; font-family:var(--mono); font-size:11px; color:var(--teal); margin-bottom:6px;}
+  .fbox b{display:block; font-family:var(--serif); font-weight:500; font-size:19px; margin-bottom:4px;}
+  .fbox span{font-size:13px; color:var(--ink-soft); line-height:1.45; display:block;}
+  .farrow{display:flex; align-items:center; padding:0 8px; color:var(--ink-soft); font-family:var(--mono);}
+  .floop{margin-top:10px; font-family:var(--mono); font-size:12px; color:var(--ink-soft); text-align:center;}
+  @media (max-width:820px){.flow{flex-direction:column;} .farrow{justify-content:center; padding:6px 0; transform:rotate(90deg);}}
 </style>
 </head>
 <body>
-
 <header class="site">
   <div class="navrow">
-    <a class="brand" href="index-en.html"><span class="dot"></span>netgexdaily</a>
+    <a class="brand" href="index-en.html"><span class="dot"></span>Options Flow</a>
     <div style="display:flex; align-items:center; gap:24px;">
       <nav class="links">
         <a href="dashboard-spx-en.html">SPX Dashboard</a>
@@ -152,100 +129,58 @@
   </div>
 </header>
 
-<main class="wrap">
-
-  <section class="hero" style="border-top:none; padding-bottom:0;">
-    <div class="kicker">personal project <span class="rule"></span> SPX / NDX market data</div>
-    <h1>The market's net gamma exposure, read one day at a time.</h1>
-    <p class="lead">Every day I collect, compute and publish the net GEX for SPX and NDX from the options chains, then visualize it in interactive dashboards to read where the market tends to accelerate or settle down.</p>
-    <div class="ctas">
-      <a class="btn primary" href="dashboard-spx-en.html">Open the SPX dashboard</a>
-      <a class="btn" href="pipeline-en.html">How the pipeline works</a>
+<main>
+<div class="wrap">
+  <div class="hero" style="grid-template-columns:1fr; padding:96px 0 72px; max-width:760px;">
+    <div>
+      <div class="kicker">portfolio · projects built with artificial intelligence</div>
+      <h1>I turn ideas into working tools, together with artificial intelligence.</h1>
+      <p class="lead">I define the problem and check the results. AI helps me write the code, build the pages and analyze the data.</p>
+      <div class="cta">
+        <a class="btn primary" href="#progetto">See a project</a>
+              </div>
     </div>
+  </div>
+</div>
 
-    <div class="motif">
-      <svg viewBox="0 0 920 140" preserveAspectRatio="none">
-        <line x1="0" y1="70" x2="920" y2="70" stroke="var(--line)" stroke-width="1"/>
-        <path d="M0,70 C40,40 90,20 140,35 C190,50 220,90 270,100 C320,110 360,60 410,45 C460,30 500,55 550,70 C600,85 640,110 690,105 C740,100 780,55 830,40 C860,30 890,45 920,55 L920,70 L0,70 Z" fill="var(--teal)" opacity="0.14"/>
-        <path d="M0,70 C40,40 90,20 140,35 C190,50 220,90 270,100 C320,110 360,60 410,45 C460,30 500,55 550,70 C600,85 640,110 690,105 C740,100 780,55 830,40 C860,30 890,45 920,55" fill="none" stroke="var(--teal)" stroke-width="1.5"/>
-        <path d="M0,70 C40,100 90,120 140,105 C190,90 220,50 270,60 C320,70 360,120 410,110 C460,100 500,80 550,70 C600,60 640,30 690,50 C740,70 780,100 830,95 C860,90 890,80 920,85 L920,70 L0,70 Z" fill="var(--rust)" opacity="0.10"/>
-        <path d="M0,70 C40,100 90,120 140,105 C190,90 220,50 270,60 C320,70 360,120 410,110 C460,100 500,80 550,70 C600,60 640,30 690,50 C740,70 780,100 830,95 C860,90 890,80 920,85" fill="none" stroke="var(--rust)" stroke-width="1.5"/>
-      </svg>
-    </div>
-  </section>
+<div class="wrap">
+  <div class="flow" aria-label="How I work: from idea to publication">
+    <div class="fbox"><em>01</em><b>Idea</b><span>I start from a concrete problem and describe it</span></div>
+    <div class="farrow">→</div>
+    <div class="fbox ai"><em>02</em><b>Building with AI</b><span>Code, data, pages and analysis</span></div>
+    <div class="farrow">→</div>
+    <div class="fbox"><em>03</em><b>Review</b><span>I check the results and fix them</span></div>
+  </div>
+</div>
 
-  <section>
-    <div class="label">dashboards</div>
-    <h2>Two indices, same methodology</h2>
-    <p>Each dashboard lets you pick a day from a calendar and shows three linked charts: spot price with the levels where gamma exposure is highest and lowest, the CVD (Cumulative Volume Delta), and the net gamma exposure value, each sampled at 5-minute intervals.</p>
-    <div class="tiles">
-      <a class="tile" href="dashboard-spx-en.html">
-        <span class="idx">SPX</span>
-        <h3>S&amp;P 500 Index</h3>
-        <p>Full daily series, from the first day of collection to today.</p>
-        <span class="go">open dashboard →</span>
-      </a>
-      <a class="tile" href="dashboard-ndx-en.html">
-        <span class="idx">NDX</span>
-        <h3>Nasdaq 100 Index</h3>
-        <p>Same data structure and same charts, applied to the Nasdaq 100.</p>
-        <span class="go">open dashboard →</span>
-      </a>
+<div class="wrap">
+  <section class="block" id="progetto">
+    <div class="kicker">featured project</div>
+    <h2>Options Flow</h2>
+    <p class="sec-sub">A system that collects financial market data every day and shows it in interactive dashboards, with backtest reports on trading strategies. Built with the help of AI, from data collection to online publication.</p>
+    <div class="cards3">
+      <div class="card"><div class="tag">dashboard</div><h3>Daily data</h3><p>Interactive charts for SPX and NDX, with a day calendar.</p><p style="margin-top:12px;"><a href="dashboard-spx-en.html" style="color:var(--teal); font-weight:500;">Open →</a></p></div>
+      <div class="card"><div class="tag">pipeline</div><h3>How it works</h3><p>From the data source to the public page, step by step.</p><p style="margin-top:12px;"><a href="pipeline-en.html" style="color:var(--teal); font-weight:500;">Read →</a></p></div>
+      <div class="card"><div class="tag">backtest</div><h3>Strategies</h3><p>Three trading strategies tested on historical data.</p><p style="margin-top:12px;"><a href="strategy-development-en.html" style="color:var(--teal); font-weight:500;">Explore →</a></p></div>
     </div>
   </section>
+</div>
 
-  <section>
-    <div class="label">methodology</div>
-    <h2>From the options chain to the chart</h2>
-    <p>The site doesn't run a traditional database: it uses Google Sheets as lightweight, inspectable storage, one published sheet per day, indexed by a master file the site reads automatically.</p>
-    <div class="steps">
-      <div class="step"><span class="n">01</span><span class="t"><b>Data source</b> — SPX / NDX options chain</span></div>
-      <div class="step"><span class="n">02</span><span class="t"><b>Collection script</b> — computes net GEX and saves a row</span></div>
-      <div class="step"><span class="n">03</span><span class="t"><b>Google Sheets</b> — one sheet per day of data</span></div>
-      <div class="step"><span class="n">04</span><span class="t"><b>CSV publishing</b> — day sheet + master index</span></div>
-      <div class="step"><span class="n">05</span><span class="t"><b>Dashboard</b> — fetches the CSV and renders the charts</span></div>
+<div class="contact" id="contatti">
+  <div class="wrap">
+    <h2>Let's talk</h2>
+    <p>If you want to know how I work with AI or see more details, get in touch.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/riccardosp02">GitHub</a>
+      <a class="btn" href="https://www.linkedin.com/in/riccardo-cattaneo">LinkedIn</a>
+      <a class="btn" href="mailto:riccardo.cattaneo8@gmail.com">Email</a>
     </div>
-    <p style="margin-top:24px;"><a class="btn" href="pipeline-en.html">Read the full pipeline</a></p>
-  </section>
-
-  <section>
-    <div class="label">stack</div>
-    <h2>Tools used</h2>
-    <div class="stack">
-      <span class="badge">HTML / CSS / JS</span>
-      <span class="badge">Chart.js</span>
-      <span class="badge">Google Sheets</span>
-      <span class="badge">CSV published to the web</span>
-      <span class="badge">GitHub Pages</span>
-    </div>
-  </section>
-
+  </div>
+</div>
 </main>
 
 <footer>
-  <div class="wrap">
-    <div class="cols">
-      <div>
-        <h4>Who built this</h4>
-        <p>A personal project born to monitor the gamma structure of the options market, built and maintained independently: data collection, computation and visualization.</p>
-        <div class="social">
-          <a href="#" target="_blank" rel="noopener">GitHub</a>
-          <a href="#" target="_blank" rel="noopener">LinkedIn</a>
-        </div>
-      </div>
-      <div>
-        <h4>Navigate</h4>
-        <p><a href="dashboard-spx-en.html">SPX Dashboard</a></p>
-        <p><a href="dashboard-ndx-en.html">NDX Dashboard</a></p>
-        <p><a href="pipeline-en.html">How it works</a></p>
-        <p><a href="changelog-en.html">Daily notes</a></p>
-      </div>
-    </div>
-    <div class="disclaimer">
-      Personal project for educational and demonstration purposes. The data shown does not constitute financial advice.
-    </div>
-  </div>
+  <div class="wrap">Personal project for educational and demonstration purposes. The data shown does not constitute financial advice.</div>
 </footer>
-
 </body>
 </html>
