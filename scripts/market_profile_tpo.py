@@ -88,7 +88,9 @@ def load_volume_profile(path: str) -> pd.Series:
 
 
 def build_volume_profile(vp: pd.Series, va_coverage: float = 0.70,
-                          zone_threshold: float = 0.30, zone_gap: float = 1.0,
+                          zone_method: str = "threshold",
+                          zone_threshold: float = 0.38, zone_gap: float = 1.0,
+                          percentile_cutoff: float = 12.0,
                           max_zones: int = 2) -> dict:
     """
     Market Profile basato su VOLUME reale per livello (replica il tipo
@@ -97,10 +99,15 @@ def build_volume_profile(vp: pd.Series, va_coverage: float = 0.70,
     - POC = livello con volume massimo, UNICO per l'intera sessione.
     - Value Area = fascia contigua attorno al POC che copre ~70% del
       volume totale (espansione classica, un lato alla volta).
-    - Zone (facoltative) = cluster di livelli con volume >= zone_threshold
-      del picco, uniti se la distanza tra livelli "caldi" consecutivi e'
-      <= zone_gap; vengono riportate solo a scopo di evidenziazione
-      visuale (zone arancioni), il POC resta unico e non e' per-zona.
+    - Zone (facoltative), due metodi, entrambi calibrati sui giorni noti
+      (2 e 5 ottobre, errore totale sui bordi ~1.25-1.5 punti ciascuno):
+        * "threshold" (default): livelli con volume >= zone_threshold
+          (0.38) del picco, uniti se la distanza tra livelli "caldi"
+          consecutivi e' <= zone_gap.
+        * "percentile": i percentile_cutoff% (12.0 di default) livelli
+          con volume piu' alto, uniti con la stessa regola di gap; replica
+          il parametro "Upper cut-off, %" dell'indicatore ATAS.
+      In entrambi i casi il POC resta unico e non e' per-zona.
     """
     levels = vp.index.to_numpy()
     counts = vp.to_dict()
@@ -124,8 +131,12 @@ def build_volume_profile(vp: pd.Series, va_coverage: float = 0.70,
             break
     val, vah = levels[lo_i], levels[hi_i]
 
-    peak = vp.max()
-    hot = vp[vp >= peak * zone_threshold].index.to_numpy()
+    if zone_method == "percentile":
+        n_hot = max(1, int(len(vp) * percentile_cutoff / 100))
+        hot = np.sort(vp.sort_values(ascending=False).head(n_hot).index.to_numpy())
+    else:
+        peak = vp.max()
+        hot = vp[vp >= peak * zone_threshold].index.to_numpy()
     zones = []
     if len(hot) > 0:
         cur_lo, cur_hi = hot[0], hot[0]
@@ -230,7 +241,7 @@ def _density_zones(levels, counts, threshold: float = 0.30, gap: float = 1.0, ma
 
 def plot_tpo_with_volume_zones(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp,
                                 tpo_profile: dict, vol_profile: dict,
-                                zone_threshold: float = 0.30, zone_gap: float = 1.0, max_zones: int = 2,
+                                zone_threshold: float = 0.38, zone_gap: float = 1.0, max_zones: int = 2,
                                 out_path: str = None):
     """
     Candela daily + profilo TPO, MA le barre arancioni sono quelle il cui
@@ -293,7 +304,7 @@ def plot_tpo_with_volume_zones(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd
 
 def plot_triple_panel(df_5m: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp,
                        tpo_profile: dict, vol_profile: dict,
-                       zone_threshold: float = 0.30, zone_gap: float = 1.0, max_zones: int = 2,
+                       zone_threshold: float = 0.38, zone_gap: float = 1.0, max_zones: int = 2,
                        out_path: str = None):
     """
     Tre pannelli affiancati, stessa giornata:
